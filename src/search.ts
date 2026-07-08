@@ -23,7 +23,7 @@ const HIGHLIGHT: string = 'fjf-hl';
 const CURRENT: string = 'fjf-hl-current';
 const DEBOUNCE_MS: number = 120;
 
-// CSS Custom Highlight API paints ranges with zero DOM mutation — no <mark> wrapping, no reflow,
+// CSS Custom Highlight API paints ranges with zero DOM mutation - no <mark> wrapping, no reflow,
 // O(1) clearing. Fall back to wrapping <mark> elements only where it is unavailable (e.g. jsdom).
 const supportsHighlight: boolean =
 	typeof CSS !== 'undefined' && 'highlights' in CSS && typeof Highlight !== 'undefined';
@@ -143,7 +143,8 @@ export function createSearch(tree: HTMLElement, options: SearchOptions = {}): Se
 		if (matchCount === 0) {
 			return;
 		}
-		index = ((position % matchCount) + matchCount) % matchCount;
+		const wrapped: number = position % matchCount;
+		index = (wrapped + matchCount) % matchCount;
 
 		if (curHl !== null) {
 			curHl.clear();

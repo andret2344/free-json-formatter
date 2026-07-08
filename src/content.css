@@ -1,4 +1,4 @@
-/* Free JSON Formatter — injected styles. All scoped under .fjf-* to avoid clobbering. */
+/* Free JSON Formatter - injected styles. All scoped under .fjf-* to avoid clobbering. */
 
 :root {
 	/* Indentation width in ch, overridden per-tree at runtime via element style (see content.ts). */
@@ -205,7 +205,7 @@ html.fjf-active body {
 	min-height: 0; /* let the flex child shrink so its own scrollbar shows */
 	counter-reset: fjf-line;
 	padding: 12px 16px 12px 4em;
-	overflow: auto; /* both axes scroll inside the viewport — horizontal bar stays at the bottom */
+	overflow: auto; /* both axes scroll inside the viewport - horizontal bar stays at the bottom */
 	white-space: nowrap;
 }
 
@@ -233,7 +233,7 @@ html.fjf-active body {
 }
 
 /* Always-visible line numbers in a fixed left gutter. Collapsed children are display:none,
-   so they do not increment the counter — numbering stays correct as nodes expand/collapse. */
+   so they do not increment the counter - numbering stays correct as nodes expand/collapse. */
 .fjf-line::before {
 	content: counter(fjf-line);
 	position: absolute;

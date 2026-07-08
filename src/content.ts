@@ -49,7 +49,7 @@ function nextTheme(theme: Theme): Theme {
 	return THEME_ORDER[(index + 1) % THEME_ORDER.length];
 }
 
-/** Payloads above this size get a "large — may be slow" warning in the toolbar. */
+/** Payloads above this size get a "large - may be slow" warning in the toolbar. */
 const LARGE_BYTES: number = 10 * 1024 * 1024;
 
 function indentSelect(current: IndentOption): HTMLSelectElement {
@@ -110,7 +110,7 @@ async function mount(detected: Detected): Promise<void> {
 		rawPre.hidden = !raw;
 		formattedBtn.classList.toggle('fjf-active-view', !raw);
 		rawBtn.classList.toggle('fjf-active-view', raw);
-		// Tree-only controls — disable them in the raw view.
+		// Tree-only controls - disable them in the raw view.
 		expandBtn.disabled = raw;
 		collapseBtn.disabled = raw;
 		wrapBtn.disabled = raw;
@@ -202,7 +202,7 @@ async function mount(detected: Detected): Promise<void> {
 
 	// Atomic swap in one synchronous block (no await between): apply the theme, activate our
 	// styles, drop the browser's raw JSON, and insert the tree. The browser paints this as a
-	// single transition from plain raw text straight to the themed formatted view — no white
+	// single transition from plain raw text straight to the themed formatted view - no white
 	// flash and no intermediate recolored-raw frame.
 	applyTheme(theme);
 	document.documentElement.classList.add('fjf-active');

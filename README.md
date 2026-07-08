@@ -120,7 +120,7 @@ yarn check:fix     # Biome apply safe fixes
 yarn format        # Biome format --write
 ```
 
-> Use `yarn run check` (not `yarn check`) — bare `yarn check` is a Yarn Classic built-in, not this
+> Use `yarn run check` (not `yarn check`) - bare `yarn check` is a Yarn Classic built-in, not this
 > project's script.
 
 The test suite covers JSON detection, tree rendering, collapse/expand, URL linking, and search.

@@ -25,7 +25,7 @@ function reloadActiveTab(): void {
 async function save(mb: number): Promise<void> {
 	const clamped: number = clampMaxMb(mb);
 	await setMaxMb(clamped);
-	flashStatus('Saved ✓ — reloading…');
+	flashStatus('Saved ✓ Reloading...');
 	window.clearTimeout(reloadTimer);
 	reloadTimer = window.setTimeout(reloadActiveTab, RELOAD_DELAY_MS);
 }

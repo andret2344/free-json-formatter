@@ -21,7 +21,11 @@ function manifestFor(target, base) {
 		m.browser_specific_settings = {
 			gecko: {
 				id: GECKO_ID,
-				strict_min_version: '115.0'
+				strict_min_version: '115.0',
+				// AMO requires an explicit data-collection declaration; this extension collects nothing.
+				data_collection_permissions: {
+					required: ['none']
+				}
 			}
 		};
 	}

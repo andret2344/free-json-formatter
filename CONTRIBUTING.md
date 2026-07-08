@@ -9,7 +9,7 @@ dependency-light browser extension, so contributing is quick to get into.
   A pull request that adds any of these will be declined.
 - **Minimal permissions.** Do not add manifest permissions or host permissions without a
   strong, discussed reason.
-- Be respectful — see [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+- Be respectful - see [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## Getting started
 
@@ -34,7 +34,7 @@ This project uses [Yarn](https://classic.yarnpkg.com/) (Classic / v1).
 
 ## Before you open a pull request
 
-Run the full local check — CI runs the same commands:
+Run the full local check - CI runs the same commands:
 
 ```bash
 yarn run check         # Biome: format + lint (use `run`; bare `yarn check` is a Yarn built-in)
