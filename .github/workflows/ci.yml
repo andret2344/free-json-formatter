@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  check:
+    name: Lint, typecheck & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node LTS
+        uses: actions/setup-node@v5
+        with:
+          node-version: "lts/*"
+          cache: "yarn"
+
+      - name: Install
+        run: yarn install --frozen-lockfile
+
+      - name: Biome check (format + lint)
+        run: yarn run check
+
+      - name: Typecheck
+        run: yarn typecheck
+
+      - name: Test (with coverage)
+        run: yarn test:coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage/lcov.info
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  build_chromium:
+    name: Build & Pack (chromium)
+    needs: check
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "lts/*"
+          cache: "yarn"
+
+      - name: Install
+        run: yarn install --frozen-lockfile
+
+      - name: Build chromium
+        run: yarn build:chromium
+
+      - name: Zip chromium
+        working-directory: dist/chromium
+        run: zip -r ../free-json-formatter-chromium.zip .
+
+      - name: Upload chromium ZIP
+        uses: actions/upload-artifact@v5
+        with:
+          name: free-json-formatter-chromium
+          path: dist/free-json-formatter-chromium.zip
+
+  build_firefox:
+    name: Build & Pack (firefox)
+    needs: check
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "lts/*"
+          cache: "yarn"
+
+      - name: Install
+        run: yarn install --frozen-lockfile
+
+      - name: Build firefox
+        run: yarn build:firefox
+
+      - name: Zip firefox
+        working-directory: dist/firefox
+        run: zip -r ../free-json-formatter-firefox.zip .
+
+      - name: Upload firefox ZIP
+        uses: actions/upload-artifact@v5
+        with:
+          name: free-json-formatter-firefox
+          path: dist/free-json-formatter-firefox.zip
+
+  release:
+    name: GitHub Release ${{ github.ref_name }}
+    needs: [ build_chromium, build_firefox ]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download both ZIPs
+        uses: actions/download-artifact@v5
+        with:
+          pattern: free-json-formatter-*
+          merge-multiple: true
+          path: dist
+
+      - name: Create Release and attach ZIPs
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          files: dist/free-json-formatter-*.zip

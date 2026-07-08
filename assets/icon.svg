@@ -1,0 +1,28 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#0969da"/>
+            <stop offset="1" stop-color="#1a7f37"/>
+        </linearGradient>
+    </defs>
+
+    <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#bg)"/>
+
+    <!-- braces -->
+    <g fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M48 36 q-9 0 -9 11 v5 q0 9 -9 9 q9 0 9 9 v5 q0 11 9 11"/>
+        <path d="M80 36 q9 0 9 11 v5 q0 9 9 9 q-9 0 -9 9 v5 q0 11 -9 11"/>
+    </g>
+
+    <!-- formatted rows: colored key bullets + white value lines -->
+    <g>
+        <circle cx="55" cy="50" r="4.5" fill="#ffd33d"/>
+        <rect x="63" y="47" width="16" height="6" rx="3" fill="#ffffff" opacity="0.92"/>
+
+        <circle cx="55" cy="64" r="4.5" fill="#7ee787"/>
+        <rect x="63" y="61" width="22" height="6" rx="3" fill="#ffffff" opacity="0.92"/>
+
+        <circle cx="55" cy="78" r="4.5" fill="#ffa657"/>
+        <rect x="63" y="75" width="12" height="6" rx="3" fill="#ffffff" opacity="0.92"/>
+    </g>
+</svg>

@@ -1,0 +1,358 @@
+/* Free JSON Formatter — injected styles. All scoped under .fjf-* to avoid clobbering. */
+
+:root {
+	/* Indentation width in ch, overridden per-tree at runtime via element style (see content.ts). */
+	--fjf-tab: 2;
+	--fjf-bg: #ffffff;
+	--fjf-fg: #1f2328;
+	--fjf-muted: #8b949e;
+	--fjf-line-hover: #f2f4f7;
+	--fjf-toolbar-bg: #f6f8fa;
+	--fjf-border: #d0d7de;
+	--fjf-key: #0550ae;
+	--fjf-string: #0a7d33;
+	--fjf-number: #953800;
+	--fjf-boolean: #8250df;
+	--fjf-null: #6e7781;
+	--fjf-punct: #57606a;
+	--fjf-link: #0969da;
+	--fjf-hl-bg: #fff3b0;
+	--fjf-hl-cur-bg: #ffca28;
+	--fjf-btn-bg: #ffffff;
+	--fjf-btn-active: #dbeafe;
+}
+
+/* Auto: follow the OS when no explicit theme is chosen. */
+@media (prefers-color-scheme: dark) {
+	:root[data-fjf-theme="auto"] {
+		--fjf-bg: #0d1117;
+		--fjf-fg: #e6edf3;
+		--fjf-muted: #7d8590;
+		--fjf-line-hover: #161b22;
+		--fjf-toolbar-bg: #161b22;
+		--fjf-border: #30363d;
+		--fjf-key: #79c0ff;
+		--fjf-string: #7ee787;
+		--fjf-number: #ffa657;
+		--fjf-boolean: #d2a8ff;
+		--fjf-null: #8b949e;
+		--fjf-punct: #8b949e;
+		--fjf-link: #58a6ff;
+		--fjf-hl-bg: #57500a;
+		--fjf-hl-cur-bg: #9e8400;
+		--fjf-btn-bg: #21262d;
+		--fjf-btn-active: #1f6feb44;
+	}
+}
+
+:root[data-fjf-theme="dark"] {
+	--fjf-bg: #0d1117;
+	--fjf-fg: #e6edf3;
+	--fjf-muted: #7d8590;
+	--fjf-line-hover: #161b22;
+	--fjf-toolbar-bg: #161b22;
+	--fjf-border: #30363d;
+	--fjf-key: #79c0ff;
+	--fjf-string: #7ee787;
+	--fjf-number: #ffa657;
+	--fjf-boolean: #d2a8ff;
+	--fjf-null: #8b949e;
+	--fjf-punct: #8b949e;
+	--fjf-link: #58a6ff;
+	--fjf-hl-bg: #57500a;
+	--fjf-hl-cur-bg: #9e8400;
+	--fjf-btn-bg: #21262d;
+	--fjf-btn-active: #1f6feb44;
+}
+
+html.fjf-active,
+html.fjf-active body {
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	overflow: hidden; /* scrolling happens inside .fjf-tree / .fjf-raw, not on the page */
+	background: var(--fjf-bg);
+	color: var(--fjf-fg);
+}
+
+.fjf-root {
+	display: flex;
+	flex-direction: column;
+	height: 100vh;
+	font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.fjf-toolbar {
+	flex: 0 0 auto;
+	z-index: 10;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 12px;
+	background: var(--fjf-toolbar-bg);
+	border-bottom: 1px solid var(--fjf-border);
+	flex-wrap: wrap;
+}
+
+.fjf-btn {
+	font: inherit;
+	font-size: 12px;
+	padding: 3px 10px;
+	border: 1px solid var(--fjf-border);
+	border-radius: 6px;
+	background: var(--fjf-btn-bg);
+	color: var(--fjf-fg);
+	cursor: pointer;
+}
+
+.fjf-btn:hover:not(:disabled) {
+	border-color: var(--fjf-link);
+}
+
+.fjf-btn:disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+
+.fjf-btn.fjf-active-view {
+	background: var(--fjf-btn-active);
+	border-color: var(--fjf-link);
+}
+
+.fjf-sep {
+	width: 1px;
+	align-self: stretch;
+	background: var(--fjf-border);
+	margin: 2px 4px;
+}
+
+.fjf-spacer {
+	flex: 1;
+}
+
+.fjf-search {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.fjf-search-nav-group {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.fjf-search-nav-group[hidden] {
+	display: none;
+}
+
+.fjf-search-input {
+	font: inherit;
+	font-size: 12px;
+	padding: 3px 8px;
+	border: 1px solid var(--fjf-border);
+	border-radius: 6px;
+	background: var(--fjf-btn-bg);
+	color: var(--fjf-fg);
+	width: 160px;
+}
+
+.fjf-search-count {
+	font-size: 11px;
+	color: var(--fjf-muted);
+	min-width: 46px;
+	text-align: center;
+}
+
+.fjf-search-nav {
+	padding: 2px 8px;
+}
+
+.fjf-search-case {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	padding: 3px 7px;
+	letter-spacing: 0.5px;
+}
+
+.fjf-select {
+	font: inherit;
+	font-size: 12px;
+	padding: 3px 6px;
+	border: 1px solid var(--fjf-border);
+	border-radius: 6px;
+	background: var(--fjf-btn-bg);
+	color: var(--fjf-fg);
+	cursor: pointer;
+}
+
+.fjf-select:disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+
+.fjf-warn {
+	padding: 3px 8px;
+	font-size: 12px;
+	color: var(--fjf-number);
+	white-space: nowrap;
+}
+
+.fjf-tree {
+	position: relative;
+	flex: 1 1 auto;
+	min-height: 0; /* let the flex child shrink so its own scrollbar shows */
+	counter-reset: fjf-line;
+	padding: 12px 16px 12px 4em;
+	overflow: auto; /* both axes scroll inside the viewport — horizontal bar stays at the bottom */
+	white-space: nowrap;
+}
+
+/* Wrap on: force wrapping to the viewport width, no horizontal scroll. */
+.fjf-tree.fjf-wrap {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	overflow-x: hidden;
+}
+
+.fjf-children {
+	padding-left: calc(var(--fjf-tab, 2) * 1ch);
+	border-left: 1px solid transparent;
+}
+
+.fjf-children:hover {
+	border-left-color: var(--fjf-border);
+}
+
+.fjf-line {
+	display: block;
+	border-radius: 3px;
+	cursor: default;
+	counter-increment: fjf-line;
+}
+
+/* Always-visible line numbers in a fixed left gutter. Collapsed children are display:none,
+   so they do not increment the counter — numbering stays correct as nodes expand/collapse. */
+.fjf-line::before {
+	content: counter(fjf-line);
+	position: absolute;
+	left: 0;
+	width: 3em;
+	text-align: right;
+	color: var(--fjf-muted);
+	opacity: 0.65;
+	font-variant-numeric: tabular-nums;
+	user-select: none;
+	pointer-events: none;
+}
+
+.fjf-entry[data-expand="1"] > .fjf-line {
+	cursor: pointer;
+}
+
+.fjf-entry[data-expand="1"] > .fjf-line:hover {
+	background: var(--fjf-line-hover);
+}
+
+.fjf-toggle {
+	display: inline-block;
+	width: 1.1em;
+	color: var(--fjf-muted);
+	text-align: center;
+	user-select: none;
+}
+
+.fjf-toggle-empty {
+	visibility: hidden;
+}
+
+.fjf-key {
+	color: var(--fjf-key);
+}
+
+.fjf-colon {
+	color: var(--fjf-punct);
+}
+
+.fjf-string {
+	color: var(--fjf-string);
+	/* Wrapping is governed by the tree (.fjf-tree / .fjf-tree.fjf-wrap), not forced here,
+	   so the Wrap toggle actually takes effect on long string values. */
+}
+
+.fjf-number {
+	color: var(--fjf-number);
+}
+
+.fjf-boolean {
+	color: var(--fjf-boolean);
+}
+
+.fjf-null {
+	color: var(--fjf-null);
+	font-style: italic;
+}
+
+.fjf-punct {
+	color: var(--fjf-punct);
+}
+
+.fjf-link {
+	color: var(--fjf-link);
+	text-decoration: underline;
+}
+
+.fjf-preview {
+	color: var(--fjf-muted);
+	font-style: italic;
+}
+
+/* Collapsed: hide the expanded children + closing line; the header keeps its inline
+   preview, closing bracket, and comma (visible by default). */
+.fjf-entry.fjf-collapsed > .fjf-children,
+.fjf-entry.fjf-collapsed > .fjf-close {
+	display: none;
+}
+
+/* Open: hide the inline preview, the inline closing bracket (the .fjf-punct right after
+   the preview), and the inline comma. The .fjf-close line renders the real closer. */
+.fjf-entry.fjf-open > .fjf-line > .fjf-preview,
+.fjf-entry.fjf-open > .fjf-line > .fjf-preview + .fjf-punct,
+.fjf-entry.fjf-open > .fjf-line > .fjf-inline-comma {
+	display: none;
+}
+
+.fjf-raw {
+	flex: 1 1 auto;
+	min-height: 0;
+	margin: 0;
+	padding: 12px 16px;
+	overflow: auto;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	color: var(--fjf-fg);
+}
+
+/* Fast path: CSS Custom Highlight API (no DOM mutation). */
+::highlight(fjf-hl) {
+	background: var(--fjf-hl-bg);
+	color: inherit;
+}
+
+::highlight(fjf-hl-current) {
+	background: var(--fjf-hl-cur-bg);
+	color: inherit;
+}
+
+/* Fallback path: wrapped <mark> elements. */
+.fjf-hl {
+	background: var(--fjf-hl-bg);
+	color: inherit;
+	border-radius: 2px;
+}
+
+.fjf-hl-current {
+	background: var(--fjf-hl-cur-bg);
+	outline: 1px solid var(--fjf-number);
+}

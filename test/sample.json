@@ -1,0 +1,42 @@
+{
+	"name": "Free JSON Formatter",
+	"version": "0.1.0",
+	"private": true,
+	"url": "https://github.com/andret2344/free-json-formatter",
+	"features": [
+		"tree",
+		"search",
+		"themes",
+		"copy"
+	],
+	"counts": {
+		"items": 42,
+		"nested": {
+			"deep": {
+				"value": null
+			}
+		}
+	},
+	"flags": {
+		"telemetry": false,
+		"externalRequests": false
+	},
+	"sample": [
+		{
+			"id": 1,
+			"label": "alpha",
+			"active": true
+		},
+		{
+			"id": 2,
+			"label": "beta",
+			"active": false
+		},
+		{
+			"id": 3,
+			"label": "gamma",
+			"active": true,
+			"tags": []
+		}
+	]
+}

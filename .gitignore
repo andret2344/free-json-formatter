@@ -1,0 +1,6 @@
+/coverage/
+/dist/
+/graphify-out/
+/node_modules/
+
+/*.log
