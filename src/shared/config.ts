@@ -2,7 +2,8 @@
 
 export const DEFAULT_MAX_MB = 40;
 export const MIN_MAX_MB = 1;
-export const MAX_MAX_MB = 2000;
+/** Ceiling for the size limit: the viewer does a full JSON.parse(), so anything past this is not realistic. */
+export const MAX_MAX_MB = 200;
 
 const MAX_MB_KEY = 'fjf-max-mb';
 const BYTES_PER_MB = 1024 * 1024;
@@ -113,4 +114,46 @@ export async function getIndent(): Promise<IndentOption> {
 
 export function setIndent(id: IndentId): void {
 	storeValue(INDENT_KEY, id);
+}
+
+/**
+ * How many levels of the tree are expanded when a JSON page opens.
+ * The tree is always rendered lazily; this only controls the initial depth.
+ */
+export type InitialExpansionDepth = 'auto' | 1 | 2 | 3 | 4 | 5 | 'all';
+
+/** Depth resolved to something the renderer can act on: a level count, or "expand everything". */
+export type ResolvedExpansionDepth = Exclude<InitialExpansionDepth, 'auto'>;
+
+/** Deepest level a user can pick by hand; full expansion is the separate `all` value. */
+export const MAX_MANUAL_DEPTH = 5;
+
+export const DEFAULT_INITIAL_EXPANSION_DEPTH: InitialExpansionDepth = 'auto';
+
+const DEPTH_KEY = 'fjf-depth';
+
+/** Parse a stored/selected value; anything unrecognized falls back to the default. */
+export function depthFromValue(value: unknown): InitialExpansionDepth {
+	if (value === 'auto' || value === 'all') {
+		return value;
+	}
+	const numeric: number = typeof value === 'number' ? value : Number(value);
+	if (Number.isInteger(numeric) && numeric >= 1 && numeric <= MAX_MANUAL_DEPTH) {
+		return numeric as InitialExpansionDepth;
+	}
+	return DEFAULT_INITIAL_EXPANSION_DEPTH;
+}
+
+export async function getInitialExpansionDepth(): Promise<InitialExpansionDepth> {
+	try {
+		const stored: Record<string, unknown> = await chrome.storage.local.get(DEPTH_KEY);
+		const raw: unknown = stored[DEPTH_KEY];
+		return raw === undefined ? DEFAULT_INITIAL_EXPANSION_DEPTH : depthFromValue(raw);
+	} catch {
+		return DEFAULT_INITIAL_EXPANSION_DEPTH;
+	}
+}
+
+export async function setInitialExpansionDepth(value: InitialExpansionDepth): Promise<void> {
+	await chrome.storage.local.set({[DEPTH_KEY]: value});
 }

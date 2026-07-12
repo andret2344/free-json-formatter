@@ -11,7 +11,9 @@
 		"includes": [
 			"src/**",
 			"test/**",
+			"e2e/**",
 			"scripts/**",
+			"*.ts",
 			"*.json"
 		]
 	},
@@ -24,7 +26,7 @@
 		"formatWithErrors": false,
 		"indentStyle": "tab",
 		"indentWidth": 4,
-		"lineEnding": "lf",
+		"lineEnding": "crlf",
 		"lineWidth": 120,
 		"useEditorconfig": true
 	},

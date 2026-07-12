@@ -29,6 +29,9 @@ jobs:
       - name: Typecheck
         run: yarn typecheck
 
+      - name: Build extensions
+        run: yarn build
+
       - name: Test (with coverage)
         run: yarn test:coverage
 
@@ -38,6 +41,31 @@ jobs:
           files: coverage/lcov.info
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  e2e:
+    name: E2E (chromium extension)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node LTS
+        uses: actions/setup-node@v5
+        with:
+          node-version: "lts/*"
+          cache: "yarn"
+
+      - name: Install
+        run: yarn install --frozen-lockfile
+
+      - name: Build chromium
+        run: yarn build:chromium
+
+      - name: Install Chromium for Playwright
+        run: yarn playwright install --with-deps chromium
+
+      # An unpacked extension needs a real browser window; xvfb provides the display.
+      - name: E2E
+        run: xvfb-run --auto-servernum yarn test:e2e
 
   build_chromium:
     name: Build & Pack (chromium)

@@ -17,12 +17,13 @@
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
 		"types": [
-			"chrome"
-		],
-		"outDir": "dist",
-		"rootDir": "src"
+			"chrome",
+			"node"
+		]
 	},
 	"include": [
-		"src"
+		"src",
+		"test",
+		"e2e"
 	]
 }

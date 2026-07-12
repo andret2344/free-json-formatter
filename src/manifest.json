@@ -1,7 +1,7 @@
 {
 	"manifest_version": 3,
 	"name": "Free JSON Formatter",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Fast, private JSON viewer. Collapsible tree, syntax highlighting, search. No telemetry, no external requests.",
 	"permissions": [
 		"storage"
@@ -32,6 +32,16 @@
 				"content.css"
 			],
 			"run_at": "document_end"
+		},
+		{
+			"matches": [
+				"<all_urls>"
+			],
+			"js": [
+				"console-handle.js"
+			],
+			"run_at": "document_end",
+			"world": "MAIN"
 		}
 	]
 }

@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {isExpandable, looksLikeUrl, typeOf} from '../src/types.js';
+import {isExpandable, looksLikeUrl, typeOf} from '../../src/shared/types.js';
 
 describe('typeOf', () => {
 	it('classifies every JSON kind', () => {

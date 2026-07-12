@@ -21,7 +21,9 @@ function manifestFor(target, base) {
 		m.browser_specific_settings = {
 			gecko: {
 				id: GECKO_ID,
-				strict_min_version: '115.0',
+				// 128 is the first Firefox that runs a content script in the page's world ("world": "MAIN"),
+				// which is what puts the `json` handle where the console can see it.
+				strict_min_version: '128.0',
 				// AMO requires an explicit data-collection declaration; this extension collects nothing.
 				data_collection_permissions: {
 					required: ['none']
@@ -32,15 +34,20 @@ function manifestFor(target, base) {
 	return m;
 }
 
-const STATIC_FILES = ['content.css', 'popup.html', 'popup.css'];
+// [source under src/, name in the packaged extension] - the manifest and popup.html reference the flat names.
+const STATIC_FILES = [
+	['content/content.css', 'content.css'],
+	['popup/popup.html', 'popup.html'],
+	['popup/popup.css', 'popup.css']
+];
 
 async function copyStatic(target, outdir, baseManifest) {
 	await writeFile(
 		resolve(outdir, 'manifest.json'),
 		`${JSON.stringify(manifestFor(target, baseManifest), null, 2)}\n`
 	);
-	for (const file of STATIC_FILES) {
-		await cp(resolve(root, 'src', file), resolve(outdir, file));
+	for (const [source, name] of STATIC_FILES) {
+		await cp(resolve(root, 'src', source), resolve(outdir, name));
 	}
 	const icons = resolve(root, 'icons');
 	if (existsSync(icons)) {
@@ -50,7 +57,11 @@ async function copyStatic(target, outdir, baseManifest) {
 
 function esbuildOptions(outdir) {
 	return {
-		entryPoints: [resolve(root, 'src/content.ts'), resolve(root, 'src/popup.ts')],
+		entryPoints: [
+			resolve(root, 'src/content/content.ts'),
+			resolve(root, 'src/content/console-handle.ts'),
+			resolve(root, 'src/popup/popup.ts')
+		],
 		bundle: true,
 		format: 'iife',
 		target: 'es2020',

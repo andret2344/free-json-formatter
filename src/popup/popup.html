@@ -23,16 +23,33 @@
 					id='max-mb'
 		            type='number'
 		            min='1'
-		            max='2000'
+		            max='200'
 		            step='1'
 		            inputmode='numeric'/>
           <span class='unit'>MB</span>
         </span>
 	</label>
 
+	<label
+			class='field'
+			for='initial-depth'>
+		<span class='label'>Initial expanded depth</span>
+		<select
+				id='initial-depth'
+				class='select'>
+			<option value='auto'>Auto</option>
+			<option value='1'>1 — root only</option>
+			<option value='2'>2 levels</option>
+			<option value='3'>3 levels</option>
+			<option value='4'>4 levels</option>
+			<option value='5'>5 levels</option>
+			<option value='all'>All</option>
+		</select>
+	</label>
+
 	<p class='hint'>
-		Larger JSON pages are shown as-is to keep the browser responsive. Applies to JSON pages you
-		open after changing this.
+		Larger JSON pages are shown as-is to keep the browser responsive. Both settings apply to JSON
+		pages you open after changing them; the current page is not reloaded.
 	</p>
 
 	<div class='row'>
