@@ -40,7 +40,13 @@ function buildLarge(): unknown {
 
 export const LARGE: unknown = buildLarge();
 
-const PLAIN_HTML: string = '<!doctype html><html><body><h1 id="title">Ordinary page</h1></body></html>';
+/** Past a 1 MB size limit, so the viewer has to leave the page as the browser served it. */
+const OVERSIZED: string = JSON.stringify({blob: 'x'.repeat(2 * 1024 * 1024)});
+
+/** Served as JSON, but it does not parse - the viewer must not take the page over. */
+const BROKEN: string = '{"a": 1,';
+
+const PLAIN_HTML: string = '<!doctype html><html lang="en"><body><h1 id="title">Ordinary page</h1></body></html>';
 
 interface Route {
 	readonly body: string;
@@ -50,7 +56,9 @@ interface Route {
 const ROUTES: Readonly<Record<string, Route>> = {
 	'/page.html': {body: PLAIN_HTML, type: 'text/html; charset=utf-8'},
 	'/data.json': {body: JSON.stringify(SAMPLE), type: 'application/json'},
-	'/large.json': {body: JSON.stringify(LARGE), type: 'application/json'}
+	'/large.json': {body: JSON.stringify(LARGE), type: 'application/json'},
+	'/oversized.json': {body: OVERSIZED, type: 'application/json'},
+	'/broken.json': {body: BROKEN, type: 'application/json'}
 };
 
 function startServer(): Promise<Server> {
@@ -62,9 +70,7 @@ function startServer(): Promise<Server> {
 		}
 		response.writeHead(200, {'content-type': route.type}).end(route.body);
 	});
-	return new Promise<Server>((done: (server: Server) => void): void => {
-		server.listen(0, '127.0.0.1', (): void => done(server));
-	});
+	return new Promise<Server>((done: (server: Server) => void): Server => server.listen(0, '127.0.0.1', (): void => done(server)));
 }
 
 const EXTENSION_NAME = 'Free JSON Formatter';
@@ -97,6 +103,12 @@ async function readExtensionId(context: BrowserContext): Promise<string> {
 	return ours.id;
 }
 
+/** One storage write, carried into the page as a single serializable argument. */
+interface StorageSetting {
+	readonly key: string;
+	readonly value: unknown;
+}
+
 export interface ExtensionFixtures {
 	readonly context: BrowserContext;
 	readonly extensionId: string;
@@ -117,9 +129,7 @@ export const test = base.extend<ExtensionFixtures>({
 		await context.close();
 	},
 
-	extensionId: async ({context}, use): Promise<void> => {
-		await use(await readExtensionId(context));
-	},
+	extensionId: async ({context}, use): Promise<void> => await use(await readExtensionId(context)),
 
 	// biome-ignore lint/correctness/noEmptyPattern: Playwright reads fixture dependencies from this destructuring pattern
 	baseUrl: async ({}, use): Promise<void> => {
@@ -133,12 +143,7 @@ export const test = base.extend<ExtensionFixtures>({
 		async function setSetting(key: string, value: unknown): Promise<void> {
 			const page = await context.newPage();
 			await page.goto(`chrome-extension://${extensionId}/popup.html`);
-			await page.evaluate(
-				async ([storageKey, storageValue]): Promise<void> => {
-					await chrome.storage.local.set({[storageKey as string]: storageValue});
-				},
-				[key, value]
-			);
+			await page.evaluate(async (setting: StorageSetting): Promise<void> => await chrome.storage.local.set({[setting.key]: setting.value}), {key, value});
 			await page.close();
 		}
 

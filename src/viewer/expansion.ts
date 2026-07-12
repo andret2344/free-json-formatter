@@ -92,11 +92,7 @@ export function countCollections(value: JsonValue, maxDepth: number = Number.POS
  * Turn the stored preference into a depth the renderer can act on.
  * Explicit choices pass through; `auto` is decided from a bounded scan, never below depth 1.
  */
-export function resolveInitialExpansionDepth(
-	value: JsonValue,
-	rawByteLength: number,
-	preference: InitialExpansionDepth
-): ResolvedExpansionDepth {
+export function resolveInitialExpansionDepth(value: JsonValue, rawByteLength: number, preference: InitialExpansionDepth): ResolvedExpansionDepth {
 	if (preference !== 'auto') {
 		return preference;
 	}

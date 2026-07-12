@@ -29,17 +29,13 @@ const HIGHLIGHT: string = 'fjf-hl';
 const CURRENT: string = 'fjf-hl-current';
 const DEBOUNCE_MS: number = 120;
 
-const VALUE_SELECTOR: string = [
-	':scope > .fjf-line > .fjf-string',
-	':scope > .fjf-line > .fjf-number',
-	':scope > .fjf-line > .fjf-boolean',
-	':scope > .fjf-line > .fjf-null'
-].join(', ');
+const VALUE_SELECTOR: string = [':scope > .fjf-line > .fjf-string', ':scope > .fjf-line > .fjf-number', ':scope > .fjf-line > .fjf-boolean', ':scope > .fjf-line > .fjf-null'].join(
+	', '
+);
 
 // CSS Custom Highlight API paints ranges with zero DOM mutation - no <mark> wrapping, no reflow,
 // O(1) clearing. Fall back to wrapping <mark> elements only where it is unavailable (e.g. jsdom).
-const supportsHighlight: boolean =
-	typeof CSS !== 'undefined' && 'highlights' in CSS && typeof Highlight !== 'undefined';
+const supportsHighlight: boolean = typeof CSS !== 'undefined' && 'highlights' in CSS && typeof Highlight !== 'undefined';
 
 /** The text the renderer shows for a primitive value - what the user actually sees and searches. */
 function renderedValueText(value: JsonValue): string | null {
@@ -166,10 +162,7 @@ export function createSearch(tree: Tree, root: JsonValue, options: SearchOptions
 	function syncCaseButton(): void {
 		caseBtn.classList.toggle('fjf-active-view', caseSensitive);
 		caseBtn.setAttribute('aria-pressed', String(caseSensitive));
-		caseBtn.setAttribute(
-			'aria-label',
-			caseSensitive ? 'Disable case-sensitive search' : 'Enable case-sensitive search'
-		);
+		caseBtn.setAttribute('aria-label', caseSensitive ? 'Disable case-sensitive search' : 'Enable case-sensitive search');
 	}
 
 	syncCaseButton();

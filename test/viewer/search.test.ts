@@ -1,7 +1,7 @@
-import {describe, expect, it} from 'vitest';
+import {describe, expect, it, vi} from 'vitest';
 import type {JsonValue} from '../../src/shared/types.js';
 import {renderJson, type Tree} from '../../src/viewer/formatter.js';
-import {createSearch, type Search} from '../../src/viewer/search.js';
+import {createSearch, type Search, type SearchOptions} from '../../src/viewer/search.js';
 
 interface Harness {
 	readonly tree: Tree;
@@ -13,9 +13,9 @@ interface Harness {
 	readonly prev: HTMLButtonElement;
 }
 
-function setup(value: JsonValue, depth: number = 1): Harness {
+function setup(value: JsonValue, depth: number = 1, options: SearchOptions = {}): Harness {
 	const tree: Tree = renderJson(value, depth);
-	const search: Search = createSearch(tree, value);
+	const search: Search = createSearch(tree, value, options);
 	document.body.append(tree.el, search.el);
 	const navButtons = search.el.querySelectorAll<HTMLButtonElement>('.fjf-search-nav');
 	return {
@@ -195,5 +195,142 @@ describe('createSearch over the parsed model', () => {
 
 		expect(harness.tree.el.querySelectorAll('.fjf-hl')).toHaveLength(0);
 		expect(harness.count.textContent).toBe('');
+		expect(harness.search.el.style.display).toBe('none');
+	});
+
+	it('comes back when it is enabled again', () => {
+		const harness = setup({a: 'needle'});
+		harness.search.setEnabled(false);
+
+		harness.search.setEnabled(true);
+
+		expect(harness.search.el.style.display).toBe('');
+	});
+});
+
+describe('typing in the search box', () => {
+	function type(harness: Harness, query: string): void {
+		harness.input.value = query;
+		harness.input.dispatchEvent(new Event('input', {bubbles: true}));
+	}
+
+	it('runs the search a moment after the last keystroke, not on every one', async () => {
+		const harness = setup({a: 'needle'});
+		const nav: HTMLElement = harness.search.el.querySelector('.fjf-search-nav-group') as HTMLElement;
+
+		type(harness, 'nee');
+		type(harness, 'need');
+		type(harness, 'needle');
+		expect(harness.count.textContent).toBe(''); // debounced: nothing has run yet
+
+		await vi.waitFor((): void => expect(harness.count.textContent).toBe('1 / 1'));
+		expect(nav.hidden).toBe(false);
+	});
+
+	it('hides the navigation immediately when the field is emptied, without waiting for the debounce', async () => {
+		const harness = setup({a: 'needle'});
+		const nav: HTMLElement = harness.search.el.querySelector('.fjf-search-nav-group') as HTMLElement;
+		type(harness, 'needle');
+		await vi.waitFor((): void => expect(harness.count.textContent).toBe('1 / 1'));
+
+		type(harness, '');
+
+		expect(nav.hidden).toBe(true);
+		expect(harness.count.textContent).toBe('');
+	});
+});
+
+describe('navigating the matches', () => {
+	function press(harness: Harness, shiftKey: boolean): void {
+		harness.input.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true, shiftKey}));
+	}
+
+	it('walks forward with Enter and backwards with Shift+Enter', () => {
+		const harness = setup({a: 'hit one', b: 'hit two', c: 'hit three'}, 2);
+		search(harness, 'hit');
+		expect(harness.count.textContent).toBe('1 / 3');
+
+		press(harness, false);
+		expect(harness.count.textContent).toBe('2 / 3');
+
+		press(harness, true);
+		expect(harness.count.textContent).toBe('1 / 3');
+	});
+
+	it('wraps around at both ends', () => {
+		const harness = setup({a: 'hit one', b: 'hit two'}, 2);
+		search(harness, 'hit');
+
+		harness.prev.click(); // back from the first match
+		expect(harness.count.textContent).toBe('2 / 2');
+
+		harness.next.click(); // forward from the last one
+		expect(harness.count.textContent).toBe('1 / 2');
+	});
+
+	it('does nothing when there is nothing to navigate', () => {
+		const harness = setup({a: 'value'});
+		search(harness, 'zzz');
+
+		harness.next.click();
+		harness.prev.click();
+
+		expect(harness.count.textContent).toBe('0 / 0');
+	});
+
+	it('finds every occurrence inside one value, not just the first', () => {
+		const harness = setup({a: 'aha aha aha'}, 2);
+		search(harness, 'aha');
+
+		expect(harness.count.textContent).toBe('1 / 3');
+		expect(harness.tree.el.querySelectorAll('.fjf-hl')).toHaveLength(3);
+	});
+});
+
+describe('the case-sensitivity preference', () => {
+	it('starts pressed when the stored preference says so', () => {
+		const harness = setup({a: 'alpha', b: 'ALPHA'}, 2, {caseSensitive: true});
+		expect(harness.caseBtn.getAttribute('aria-pressed')).toBe('true');
+
+		search(harness, 'alpha');
+
+		expect(harness.count.textContent).toBe('1 / 1');
+	});
+
+	it('reports every toggle, so the choice can be persisted', () => {
+		const changes: boolean[] = [];
+
+		function onCaseChange(value: boolean): void {
+			changes.push(value);
+		}
+
+		const harness = setup({a: 'alpha'}, 2, {onCaseChange});
+
+		harness.caseBtn.click();
+		harness.caseBtn.click();
+
+		expect(changes).toEqual([true, false]);
+	});
+});
+
+describe('a hit that straddles element boundaries', () => {
+	it('is counted but left unmarked, rather than throwing', () => {
+		// The value renders as "<a>https://example.com/x</a>" inside quotes - a hit over the opening
+		// quote and the link cannot be wrapped in a single <mark>.
+		const harness = setup({site: 'https://example.com/x'}, 2);
+
+		search(harness, '"https');
+
+		expect(harness.count.textContent).toBe('1 / 1');
+		expect(harness.tree.el.querySelectorAll('.fjf-hl')).toHaveLength(0);
+	});
+
+	it('marks a hit that sits wholly inside the link text', () => {
+		const harness = setup({site: 'https://example.com/x'}, 2);
+
+		search(harness, 'example');
+
+		expect(harness.count.textContent).toBe('1 / 1');
+		expect(harness.tree.el.querySelector('a.fjf-link .fjf-hl')).not.toBeNull();
 	});
 });

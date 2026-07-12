@@ -27,7 +27,7 @@
 		"indentStyle": "tab",
 		"indentWidth": 4,
 		"lineEnding": "crlf",
-		"lineWidth": 120,
+		"lineWidth": 180,
 		"useEditorconfig": true
 	},
 	"json": {

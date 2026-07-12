@@ -4,8 +4,11 @@ Free JSON Formatter is built to be safe by design:
 
 - **No external network requests.** The content script never contacts any server.
 - **No telemetry or analytics.**
-- **Minimal permissions:** `storage` only, used solely to remember your view preferences (theme, indentation, line wrap, search case, and max payload size).
+- **Minimal permissions:** `storage` only, used solely to remember your view preferences (theme, indentation, line wrap, search case, initial expansion depth, and max payload
+  size).
 - **No remote code.** Everything ships in the packaged bundle; nothing is fetched at runtime.
+
+What is stored, key by key, is listed in the [Privacy Policy](PRIVACY.md).
 
 ## Reporting a vulnerability
 

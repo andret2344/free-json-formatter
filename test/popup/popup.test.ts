@@ -1,6 +1,6 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {DEFAULT_MAX_MB, MAX_MAX_MB, MIN_MAX_MB} from '../../src/shared/config.js';
-import {installStorageStub, type StorageStub} from '../helpers/storage-stub.js';
+import {type ChromeGlobal, installStorageStub, type StorageStub} from '../helpers/storage-stub.js';
 
 const POPUP_HTML: string = `
 	<input id='max-mb' type='number'/>
@@ -31,13 +31,11 @@ let storage: StorageStub;
 async function loadPopup(): Promise<Popup> {
 	document.body.innerHTML = POPUP_HTML;
 	const reload = vi.fn();
-	(globalThis as unknown as {chrome: {tabs: {reload: unknown}}}).chrome.tabs.reload = reload;
+	(globalThis as unknown as ChromeGlobal).chrome.tabs.reload = reload;
 
 	vi.resetModules();
 	await import('../../src/popup/popup.js');
-	await vi.waitFor((): void => {
-		expect((document.getElementById('max-mb') as HTMLInputElement).value).not.toBe('');
-	});
+	await vi.waitFor((): void => expect((document.getElementById('max-mb') as HTMLInputElement).value).not.toBe(''));
 
 	return {
 		maxInput: document.getElementById('max-mb') as HTMLInputElement,
@@ -88,9 +86,7 @@ describe('popup settings', () => {
 		const popup = await loadPopup();
 		pickDepth(popup, value);
 
-		await vi.waitFor((): void => {
-			expect(popup.status.textContent).toBe('Saved');
-		});
+		await vi.waitFor((): void => expect(popup.status.textContent).toBe('Saved'));
 		expect(String(storage.data['fjf-depth'])).toBe(value);
 	});
 
@@ -98,14 +94,22 @@ describe('popup settings', () => {
 		const popup = await loadPopup();
 
 		typeMaxMb(popup, '9999');
-		await vi.waitFor((): void => {
-			expect(storage.data['fjf-max-mb']).toBe(MAX_MAX_MB);
-		});
+		await vi.waitFor((): void => expect(storage.data['fjf-max-mb']).toBe(MAX_MAX_MB));
 
 		typeMaxMb(popup, '0');
-		await vi.waitFor((): void => {
-			expect(storage.data['fjf-max-mb']).toBe(MIN_MAX_MB);
+		await vi.waitFor((): void => expect(storage.data['fjf-max-mb']).toBe(MIN_MAX_MB));
+	});
+
+	it('saves nothing while the limit field holds no usable number', async () => {
+		const popup = await loadPopup();
+
+		typeMaxMb(popup, '');
+
+		await new Promise((resolve: (value: unknown) => void): void => {
+			setTimeout(resolve, 500); // past the save debounce
 		});
+		expect(storage.data['fjf-max-mb']).toBeUndefined();
+		expect(popup.status.textContent).toBe('');
 	});
 
 	it('normalizes the field on blur', async () => {
@@ -138,9 +142,7 @@ describe('popup settings', () => {
 		typeMaxMb(popup, '55');
 		popup.resetBtn.click();
 
-		await vi.waitFor((): void => {
-			expect(storage.data['fjf-max-mb']).toBe(DEFAULT_MAX_MB);
-		});
+		await vi.waitFor((): void => expect(storage.data['fjf-max-mb']).toBe(DEFAULT_MAX_MB));
 		expect(popup.reload).not.toHaveBeenCalled();
 	});
 
@@ -150,9 +152,7 @@ describe('popup settings', () => {
 		pickDepth(popup, '2');
 		expect(popup.status.textContent).toBe(''); // the write has not resolved yet
 
-		await vi.waitFor((): void => {
-			expect(popup.status.textContent).toBe('Saved');
-		});
+		await vi.waitFor((): void => expect(popup.status.textContent).toBe('Saved'));
 	});
 
 	it('reports "Save failed" when storage rejects', async () => {
@@ -161,9 +161,7 @@ describe('popup settings', () => {
 
 		pickDepth(popup, '2');
 
-		await vi.waitFor((): void => {
-			expect(popup.status.textContent).toBe('Save failed');
-		});
+		await vi.waitFor((): void => expect(popup.status.textContent).toBe('Save failed'));
 		expect(popup.status.classList.contains('failed')).toBe(true);
 	});
 
@@ -174,9 +172,7 @@ describe('popup settings', () => {
 		typeMaxMb(popup, '22');
 		typeMaxMb(popup, '33');
 
-		await vi.waitFor((): void => {
-			expect(popup.status.textContent).toBe('Saved');
-		});
+		await vi.waitFor((): void => expect(popup.status.textContent).toBe('Saved'));
 		expect(storage.data['fjf-max-mb']).toBe(33);
 	});
 });

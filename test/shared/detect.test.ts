@@ -1,10 +1,5 @@
-import {afterEach, describe, expect, it, vi} from 'vitest';
-import {
-	detect,
-	inspectPotentialJsonDocument,
-	type PotentialJsonDocument,
-	parseDetectedJson
-} from '../../src/shared/detect.js';
+import {afterEach, describe, expect, it, type VitestUtils, vi} from 'vitest';
+import {detect, inspectPotentialJsonDocument, type PotentialJsonDocument, parseDetectedJson} from '../../src/shared/detect.js';
 
 /** The detector only reads body, contentType and location, so a light stand-in is enough. */
 function docWith(html: string, contentType: string = 'text/html', path: string = '/page'): Document {
@@ -25,9 +20,7 @@ function bytes(text: string): number {
 	return new TextEncoder().encode(text).byteLength;
 }
 
-afterEach((): void => {
-	vi.restoreAllMocks();
-});
+afterEach((): VitestUtils => vi.restoreAllMocks());
 
 describe('inspectPotentialJsonDocument (preflight)', () => {
 	it('rejects a normal HTML page without ever parsing', () => {
@@ -37,9 +30,7 @@ describe('inspectPotentialJsonDocument (preflight)', () => {
 		expect(parse).not.toHaveBeenCalled();
 	});
 
-	it('rejects a page with several body children', () => {
-		expect(inspectPotentialJsonDocument(docWith('<div>a</div><div>b</div>'))).toBeNull();
-	});
+	it('rejects a page with several body children', () => expect(inspectPotentialJsonDocument(docWith('<div>a</div><div>b</div>'))).toBeNull());
 
 	it('accepts a lone <pre> holding JSON', () => {
 		const result = inspectPotentialJsonDocument(docWith('<pre>{ "a": 1 }</pre>'));
@@ -47,9 +38,7 @@ describe('inspectPotentialJsonDocument (preflight)', () => {
 		expect(result?.jsonLike).toBe(false); // taken over on its shape, not its content type
 	});
 
-	it('rejects a lone <pre> holding anything else', () => {
-		expect(inspectPotentialJsonDocument(docWith('<pre>hello world</pre>'))).toBeNull();
-	});
+	it('rejects a lone <pre> holding anything else', () => expect(inspectPotentialJsonDocument(docWith('<pre>hello world</pre>'))).toBeNull());
 
 	it('accepts application/json', () => {
 		const result = inspectPotentialJsonDocument(docWith('<pre>[1]</pre>', 'application/json'));
@@ -78,6 +67,18 @@ describe('inspectPotentialJsonDocument (preflight)', () => {
 		expect(inspectPotentialJsonDocument(doc)?.jsonLike).toBe(true);
 	});
 
+	it('rejects a document that has no body yet', () => {
+		const doc = {body: null, contentType: 'application/json', location: {pathname: '/a.json', search: ''}};
+
+		expect(inspectPotentialJsonDocument(doc as unknown as Document)).toBeNull();
+	});
+
+	it('reads the whole body when the content type says JSON, however the browser wrapped it', () => {
+		const doc = docWith('<div>{"a":1}</div><span></span>', 'application/json', '/api/thing');
+
+		expect(inspectPotentialJsonDocument(doc)?.rawText).toBe('{"a":1}');
+	});
+
 	it('rejects an empty document', () => {
 		expect(inspectPotentialJsonDocument(docWith(''))).toBeNull();
 		expect(inspectPotentialJsonDocument(docWith('<pre>   </pre>'))).toBeNull();
@@ -89,9 +90,7 @@ describe('inspectPotentialJsonDocument (preflight)', () => {
 		expect(inspectPotentialJsonDocument(doc)).toBeNull();
 	});
 
-	it('trims surrounding whitespace from the raw text', () => {
-		expect(inspectPotentialJsonDocument(docWith('<pre>\n  { "a": 1 }\n  </pre>'))?.rawText).toBe('{ "a": 1 }');
-	});
+	it('trims surrounding whitespace from the raw text', () => expect(inspectPotentialJsonDocument(docWith('<pre>\n  { "a": 1 }\n  </pre>'))?.rawText).toBe('{ "a": 1 }'));
 });
 
 describe('parseDetectedJson', () => {
@@ -102,9 +101,7 @@ describe('parseDetectedJson', () => {
 		expect(result?.rawByteLength).toBe(23);
 	});
 
-	it('rejects invalid JSON', () => {
-		expect(parseDetectedJson(candidate('{ not: valid }'))).toBeNull();
-	});
+	it('rejects invalid JSON', () => expect(parseDetectedJson(candidate('{ not: valid }'))).toBeNull());
 
 	it('measures the payload once and hands the byte length on', () => {
 		const encode = vi.spyOn(TextEncoder.prototype, 'encode');
@@ -123,7 +120,7 @@ describe('the size limit counts UTF-8 bytes, not characters', () => {
 
 	it('counts Polish characters as two bytes each', () => {
 		const text = '{"a":"zażółć"}';
-		expect(text.length).toBe(14);
+		expect(text).toHaveLength(14);
 		expect(bytes(text)).toBe(18); // 4 two-byte letters
 
 		expect(parseDetectedJson(candidate(text), text.length)).toBeNull(); // character count is not enough room
@@ -157,13 +154,9 @@ describe('the size limit counts UTF-8 bytes, not characters', () => {
 });
 
 describe('detect (both stages)', () => {
-	it('takes over a lone <pre> containing a JSON array', () => {
-		expect(detect(docWith('<pre>[1, 2, 3]</pre>'))?.value).toEqual([1, 2, 3]);
-	});
+	it('takes over a lone <pre> containing a JSON array', () => expect(detect(docWith('<pre>[1, 2, 3]</pre>'))?.value).toEqual([1, 2, 3]));
 
-	it('leaves a plain text page alone', () => {
-		expect(detect(docWith('just some text'))).toBeNull();
-	});
+	it('leaves a plain text page alone', () => expect(detect(docWith('just some text'))).toBeNull());
 
 	it('bails when the payload exceeds the byte limit', () => {
 		const big = docWith(`<pre>${JSON.stringify({a: 'x'.repeat(100)})}</pre>`);

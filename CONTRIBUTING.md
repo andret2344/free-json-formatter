@@ -27,7 +27,7 @@ Load the unpacked extension:
 - **Firefox:** `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on** →
   select `dist/firefox/manifest.json`.
 
-Open `test/sample.json` or any JSON API endpoint to see it in action. Run `yarn watch`
+Open `test/helpers/sample.json` or any JSON API endpoint to see it in action. Run `yarn watch`
 to rebuild on change (reload the extension afterwards).
 
 This project uses [Yarn](https://classic.yarnpkg.com/) (Classic / v1).
@@ -40,10 +40,25 @@ Run the full local check - CI runs the same commands:
 yarn run check         # Biome: format + lint (use `run`; bare `yarn check` is a Yarn built-in)
 yarn typecheck         # tsc --noEmit
 yarn test              # Vitest
+yarn build && yarn test:e2e   # Playwright against the built extension (CI runs this as its own job)
 ```
 
 Fix formatting and safe lint issues automatically with `yarn check:fix` (or `yarn format` for
 formatting only). Formatting and linting are both handled by [Biome](https://biomejs.dev).
+
+## Documentation is part of the change
+
+A change to what the extension **stores, reads, or can reach** - a new `chrome.storage` key, a
+changed manifest permission, a new browser API - must update, in the same pull request:
+
+- **[PRIVACY.md](PRIVACY.md)**: the storage-key table and the `Last updated` date. That file is the
+  privacy policy the Chrome Web Store listing points at, so a stale table is a false statement to
+  users, not a docs nit.
+- **[SECURITY.md](SECURITY.md)**: the "Minimal permissions" bullet, which lists the same settings.
+- **[README.md](README.md)**: the Privacy table.
+
+The same rule applies to anything else these files describe: if you move a file, rename a script, or
+change a documented behavior, fix the sentence that describes it in the same commit.
 
 ## Code style
 
@@ -52,27 +67,35 @@ formatting only). Formatting and linting are both handled by [Biome](https://bio
 - Extract non-trivial union types into named type aliases rather than inlining them.
 - Use descriptive names - no single-letter or abbreviated identifiers (`node`, not `n`; `separator`, not `sep`).
 - Give array-operation callbacks (`map`/`filter`/`find`/…) a named function instead of an inline arrow.
-- Build DOM through the shared factories in `src/dom.ts` (`createElement`, `button`, `separator`) rather than raw `document.createElement`.
+- **No destructuring in function parameters.** Take the whole object or tuple and read its fields inside the body (`function f(entry: JsonEntry)`, then `entry.key` - not
+  `function f({key}: JsonEntry)`). Destructuring a *local* off a call result (`const [open, close] = brackets(collection)`) is fine - the rule is about parameters. The one exception
+  is the Playwright fixture and test callbacks in `e2e/`, which *must* destructure: Playwright reads a test's fixture dependencies out of that pattern and rejects a plain parameter
+  with *"First argument must use the object destructuring pattern"*.
+- Build DOM through the shared factories in `src/viewer/dom.ts` (`createElement`, `button`, `separator`) rather than raw `document.createElement`.
 - All injected DOM and CSS is namespaced under `fjf-` to avoid clashing with page styles.
 - Add or update tests in `test/` for any behavior change.
 
 ## Project layout
 
-| Path                 | Purpose                                        |
-|----------------------|------------------------------------------------|
-| `src/content.ts`     | Entry point: detection, mounting, toolbar.     |
-| `src/detect.ts`      | Decides whether a document is raw JSON.        |
-| `src/formatter.ts`   | JSON → collapsible DOM tree (lazy children).   |
-| `src/search.ts`      | In-tree text search + navigation.              |
-| `src/dom.ts`         | Shared DOM element factories (createElement…). |
-| `src/config.ts`      | Persisted prefs: max size, wrap, indent, case. |
-| `src/popup.*`        | Settings popup (HTML, TypeScript, CSS).        |
-| `src/types.ts`       | JSON value types and helpers.                  |
-| `src/content.css`    | All `fjf-*` styles + theming.                  |
-| `src/manifest.json`  | Base MV3 manifest (Firefox id added at build). |
-| `scripts/build.mjs`  | esbuild bundle + per-browser packaging.        |
-| `test/`              | Vitest suites (jsdom).                         |
-| `.github/workflows/` | CI: check on every push/PR, release on tags.   |
+| Path                            | Purpose                                                   |
+|---------------------------------|-----------------------------------------------------------|
+| `src/manifest.json`             | Base MV3 manifest (Firefox id added at build).            |
+| `src/content/content.ts`        | Entry point: detection, mounting, toolbar, line links.    |
+| `src/content/content.css`       | All `fjf-*` styles + theming.                             |
+| `src/content/console-handle.ts` | Page-world script: exposes the document to devtools.      |
+| `src/viewer/formatter.ts`       | JSON → collapsible DOM tree (lazy children), expansion.   |
+| `src/viewer/search.ts`          | Search over the parsed JSON + navigation and highlights.  |
+| `src/viewer/expansion.ts`       | Picks the initial depth from the document's size + shape. |
+| `src/viewer/dom.ts`             | Shared DOM element factories (createElement…).            |
+| `src/shared/detect.ts`          | Decides whether a document is raw JSON.                   |
+| `src/shared/config.ts`          | Persisted prefs: max size, depth, wrap, indent, case.     |
+| `src/shared/types.ts`           | JSON value types and helpers.                             |
+| `src/shared/bridge.ts`          | The contract between the isolated and page worlds.        |
+| `src/popup/`                    | Settings popup (HTML, TypeScript, CSS).                   |
+| `scripts/build.mjs`             | esbuild bundle + per-browser packaging.                   |
+| `test/`                         | Vitest suites (jsdom), mirroring `src/`.                  |
+| `e2e/`                          | Playwright suites (real Chromium, unpacked build).        |
+| `.github/workflows/`            | CI: checks on every push/PR, release on `v*` tags.        |
 
 ## Releases
 

@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import type {InitialExpansionDepth} from '../../src/shared/config.js';
-import type {JsonObject, JsonValue} from '../../src/shared/types.js';
+import type {JsonValue} from '../../src/shared/types.js';
 import {countCollections, resolveInitialExpansionDepth, SCAN_NODE_LIMIT, scanJson} from '../../src/viewer/expansion.js';
 import {createExpansionController, renderJson} from '../../src/viewer/formatter.js';
 
@@ -15,8 +15,7 @@ function numbers(count: number): number[] {
 function nested(levels: number): JsonValue {
 	let value: JsonValue = {leaf: 1};
 	for (let level = 0; level < levels; level++) {
-		const wrapper: JsonObject = {child: value};
-		value = wrapper;
+		value = {child: value};
 	}
 	return value;
 }
@@ -94,9 +93,8 @@ describe('countCollections', () => {
 });
 
 describe('resolveInitialExpansionDepth', () => {
-	it.each<InitialExpansionDepth>([1, 2, 3, 4, 5, 'all'])('passes an explicit preference through: %s', (depth) => {
-		expect(resolveInitialExpansionDepth({a: 1}, 10, depth)).toBe(depth);
-	});
+	it.each<InitialExpansionDepth>([1, 2, 3, 4, 5, 'all'])('passes an explicit preference through: %s', (depth: InitialExpansionDepth): void =>
+		expect(resolveInitialExpansionDepth({a: 1}, 10, depth)).toBe(depth));
 
 	it('expands a very small document completely', () => {
 		const value: JsonValue = {a: 1, b: {c: 2}};

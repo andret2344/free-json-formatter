@@ -1,6 +1,6 @@
-import {describe, expect, it} from 'vitest';
+import {describe, expect, it, vi} from 'vitest';
 import type {JsonObject, JsonPath, JsonValue} from '../../src/shared/types.js';
-import {type CollectionNode, createExpansionController, renderJson, type Tree} from '../../src/viewer/formatter.js';
+import {type CollectionNode, createExpansionController, formatPath, pathAtLine, renderJson, type Tree} from '../../src/viewer/formatter.js';
 
 function entry(tree: Tree, path: JsonPath): HTMLElement | null {
 	return tree.elementAt(path);
@@ -23,7 +23,7 @@ function isOpen(element: HTMLElement): boolean {
 function chain(levels: number): JsonValue {
 	let value: JsonValue = {leaf: 1};
 	for (let level: number = levels; level >= 1; level--) {
-		const wrapper: JsonObject = {};
+		const wrapper: Record<string, JsonValue> = {};
 		wrapper[`l${level}`] = value;
 		value = wrapper;
 	}
@@ -41,7 +41,7 @@ function chainPath(level: number): JsonPath {
 
 /** An object with `size` collection children: {k0: {v: 0}, k1: {v: 1}, ...} */
 function wideObject(size: number): JsonObject {
-	const object: JsonObject = {};
+	const object: Record<string, JsonValue> = {}; // built by writing, then handed out as the readonly JsonObject
 	for (let index = 0; index < size; index++) {
 		object[`k${index}`] = {v: index};
 	}
@@ -221,6 +221,232 @@ describe('toggle accessibility', () => {
 	});
 });
 
+describe('formatPath', () => {
+	it('writes the root as the bare console handle', () => expect(formatPath([])).toBe('json'));
+
+	it('writes plain keys and indices as an accessor chain', () => expect(formatPath(['items', 0, 'id'])).toBe('json.items[0].id'));
+
+	it('brackets and quotes keys that are not identifiers, index-like keys included', () => {
+		expect(formatPath(['odd key'])).toBe('json["odd key"]');
+		expect(formatPath(['a.b'])).toBe('json["a.b"]');
+		expect(formatPath(['0'])).toBe('json["0"]'); // the object key "0"
+		expect(formatPath([0])).toBe('json[0]'); // the array index 0
+	});
+});
+
+describe('pathAtLine', () => {
+	// 1 {  2 "a": [  3 1  4 2  5 ]  6 "b": {  7 "c": 3  8 }  9 }
+	const document: JsonValue = {a: [1, 2], b: {c: 3}};
+
+	it('maps a line to the entry that owns it', () => {
+		expect(pathAtLine(document, 1)).toEqual([]);
+		expect(pathAtLine(document, 2)).toEqual(['a']);
+		expect(pathAtLine(document, 3)).toEqual(['a', 0]);
+		expect(pathAtLine(document, 4)).toEqual(['a', 1]);
+		expect(pathAtLine(document, 7)).toEqual(['b', 'c']);
+	});
+
+	it('gives a closing bracket line to the collection it closes', () => {
+		expect(pathAtLine(document, 5)).toEqual(['a']);
+		expect(pathAtLine(document, 8)).toEqual(['b']);
+		expect(pathAtLine(document, 9)).toEqual([]);
+	});
+
+	it('rejects a line the document does not have', () => {
+		expect(pathAtLine(document, 0)).toBeNull();
+		expect(pathAtLine(document, 10)).toBeNull();
+		expect(pathAtLine(document, 2.5)).toBeNull();
+	});
+
+	it('resolves a line inside a branch that was never rendered, and the renderer agrees', () => {
+		const value: JsonValue = chain(5);
+		const tree = renderJson(value, 1);
+
+		expect(entry(tree, chainPath(3))).toBeNull(); // depth 1: this branch does not exist in the DOM
+		const path = pathAtLine(value, 4) as JsonPath;
+		expect(path).toEqual(chainPath(3));
+
+		// Revealing it builds the branch, and the line the renderer wrote is the one that was asked for.
+		const revealed = tree.reveal(path) as HTMLElement;
+		expect(revealed.querySelector(':scope > .fjf-line')?.getAttribute('data-line')).toBe('4');
+	});
+});
+
+describe('the line actions', () => {
+	function actionOf(element: HTMLElement, action: 'path' | 'value'): HTMLButtonElement {
+		return element.querySelector<HTMLButtonElement>(`:scope > .fjf-line > button.fjf-copy-${action}`) as HTMLButtonElement;
+	}
+
+	function stubClipboard(): ReturnType<typeof vi.fn> {
+		const writeText = vi.fn().mockResolvedValue(undefined);
+		Object.defineProperty(navigator, 'clipboard', {value: {writeText}, configurable: true});
+		return writeText;
+	}
+
+	it('gives every entry both controls, primitives and collections alike', () => {
+		const tree = renderJson({items: [1], empty: {}}, 3);
+
+		for (const path of [[], ['items'], ['items', 0], ['empty']] as JsonPath[]) {
+			const element = entry(tree, path) as HTMLElement;
+			expect(actionOf(element, 'path')).not.toBeNull();
+			expect(actionOf(element, 'value')).not.toBeNull();
+		}
+	});
+
+	it('carries an icon, not a glyph, so no page font can swallow it', () => {
+		const tree = renderJson({a: 1}, 2);
+
+		expect(actionOf(entry(tree, ['a']) as HTMLElement, 'path').querySelector('svg')).not.toBeNull();
+	});
+
+	it('copies the accessor chain of the clicked entry', async () => {
+		const writeText = stubClipboard();
+		const tree = renderJson({items: [{id: 1}]}, 4);
+
+		actionOf(entry(tree, ['items', 0, 'id']) as HTMLElement, 'path').click();
+		await vi.waitFor((): void => expect(writeText).toHaveBeenCalledWith('json.items[0].id'));
+	});
+
+	it('copies a primitive value as its JSON literal, quotes and all', async () => {
+		const writeText = stubClipboard();
+		const tree = renderJson({name: 'buried-treasure', count: 42, missing: null}, 2);
+
+		actionOf(entry(tree, ['name']) as HTMLElement, 'value').click();
+		await vi.waitFor((): void => expect(writeText).toHaveBeenCalledWith('"buried-treasure"'));
+
+		actionOf(entry(tree, ['count']) as HTMLElement, 'value').click();
+		await vi.waitFor((): void => expect(writeText).toHaveBeenCalledWith('42'));
+
+		actionOf(entry(tree, ['missing']) as HTMLElement, 'value').click();
+		await vi.waitFor((): void => expect(writeText).toHaveBeenCalledWith('null'));
+	});
+
+	it('copies a collection as its whole subtree, re-indented', async () => {
+		const writeText = stubClipboard();
+		const tree = renderJson({outer: {inner: [1, 2]}}, 3);
+
+		actionOf(entry(tree, ['outer']) as HTMLElement, 'value').click();
+		await vi.waitFor((): void => expect(writeText).toHaveBeenCalledWith('{\n  "inner": [\n    1,\n    2\n  ]\n}'));
+	});
+
+	it('copies with the indentation selected at the moment of the copy, not at render time', async () => {
+		const writeText = stubClipboard();
+		let indent = '  ';
+		const tree = renderJson({outer: {a: 1}}, 3, {indent: (): string => indent});
+
+		indent = '\t'; // the toolbar's Indent selector changed after the tree was built
+		actionOf(entry(tree, ['outer']) as HTMLElement, 'value').click();
+		await vi.waitFor((): void => expect(writeText).toHaveBeenCalledWith('{\n\t"a": 1\n}'));
+	});
+
+	it('does not toggle the collection whose header line it sits on', () => {
+		stubClipboard();
+		const tree = renderJson({a: {b: 1}}, 2);
+		const nodeA = entry(tree, ['a']) as HTMLElement;
+
+		actionOf(nodeA, 'value').dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
+
+		expect(isOpen(nodeA)).toBe(true); // still open: the click never reached the line
+	});
+
+	it('marks the control when the copy went through', async () => {
+		stubClipboard();
+		const tree = renderJson({a: 1}, 2);
+		const control = actionOf(entry(tree, ['a']) as HTMLElement, 'value');
+
+		control.click();
+
+		await vi.waitFor((): void => expect(control.classList.contains('fjf-copy-ok')).toBe(true));
+	});
+
+	it('says so when the clipboard is blocked, rather than pretending the copy worked', async () => {
+		const writeText = vi.fn().mockRejectedValue(new Error('clipboard blocked'));
+		Object.defineProperty(navigator, 'clipboard', {value: {writeText}, configurable: true});
+		const tree = renderJson({a: 1}, 2);
+		const control = actionOf(entry(tree, ['a']) as HTMLElement, 'value');
+
+		control.click();
+
+		await vi.waitFor((): void => expect(control.classList.contains('fjf-copy-fail')).toBe(true));
+		expect(control.classList.contains('fjf-copy-ok')).toBe(false);
+	});
+});
+
+describe('addressing an entry that is not there', () => {
+	it('elementAt returns null for a path the document does not have', () => {
+		const tree = renderJson({a: {b: 1}}, 5);
+
+		expect(tree.elementAt(['nope'])).toBeNull();
+		expect(tree.elementAt(['a', 'b', 'c'])).toBeNull();
+	});
+
+	it('reveal returns null instead of building a branch that does not exist', () => {
+		const tree = renderJson({a: {b: 1}}, 1);
+
+		expect(tree.reveal(['nope', 'deeper'])).toBeNull();
+		expect(tree.reveal(['a', 'missing'])).toBeNull(); // the parent exists, the child does not
+		expect(isOpen(entry(tree, ['a']) as HTMLElement)).toBe(true); // revealing it did open the parent
+	});
+});
+
+describe('ctrl/cmd+click on a collection', () => {
+	function clickToggle(element: HTMLElement, modifier: 'ctrlKey' | 'metaKey' | null = null): void {
+		const event = new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+			ctrlKey: modifier === 'ctrlKey',
+			metaKey: modifier === 'metaKey'
+		});
+		(toggleOf(element) as HTMLButtonElement).dispatchEvent(event);
+	}
+
+	it('collapses the whole level, not just the clicked node', () => {
+		const tree = renderJson({a: {x: 1}, b: {y: 2}, c: {z: 3}}, 2);
+
+		clickToggle(entry(tree, ['a']) as HTMLElement, 'ctrlKey');
+
+		expect(isOpen(entry(tree, ['a']) as HTMLElement)).toBe(false);
+		expect(isOpen(entry(tree, ['b']) as HTMLElement)).toBe(false);
+		expect(isOpen(entry(tree, ['c']) as HTMLElement)).toBe(false);
+	});
+
+	it('treats the Mac modifier the same way', () => {
+		const tree = renderJson({a: {x: 1}, b: {y: 2}}, 2);
+
+		clickToggle(entry(tree, ['a']) as HTMLElement, 'metaKey');
+
+		expect(isOpen(entry(tree, ['b']) as HTMLElement)).toBe(false);
+	});
+
+	it('opens the level back, rendering the siblings that were never built', () => {
+		const tree = renderJson({a: {x: 1}, b: {y: 2}}, 1);
+
+		expect(entry(tree, ['b', 'y'])).toBeNull(); // depth 1: nothing below the root is rendered
+		clickToggle(entry(tree, ['a']) as HTMLElement, 'ctrlKey');
+
+		expect(isOpen(entry(tree, ['b']) as HTMLElement)).toBe(true);
+		expect(entry(tree, ['b', 'y'])).not.toBeNull();
+	});
+
+	it('leaves the levels above and below alone', () => {
+		const tree = renderJson({a: {x: {deep: 1}}, b: {y: {deep: 2}}}, 3);
+
+		clickToggle(entry(tree, ['a']) as HTMLElement, 'ctrlKey');
+
+		expect(isOpen(entry(tree, []) as HTMLElement)).toBe(true); // the root is not a sibling
+		expect(isOpen(entry(tree, ['a', 'x']) as HTMLElement)).toBe(true); // a descendant keeps its state
+	});
+
+	it('without the modifier, a click still toggles only the clicked node', () => {
+		const tree = renderJson({a: {x: 1}, b: {y: 2}}, 2);
+
+		clickToggle(entry(tree, ['a']) as HTMLElement);
+
+		expect(isOpen(entry(tree, ['a']) as HTMLElement)).toBe(false);
+		expect(isOpen(entry(tree, ['b']) as HTMLElement)).toBe(true);
+	});
+});
+
 describe('initial expansion depth', () => {
 	it('depth 1 opens only the root', () => {
 		const tree = renderJson(chain(5), 1);
@@ -350,11 +576,9 @@ describe('createExpansionController', () => {
 		expansion.cancel();
 		await done;
 		const afterCancel: number = opened.length;
-		await new Promise((resolve: (value: unknown) => void): void => {
-			setTimeout(resolve, 20);
-		});
+		await new Promise((resolve: (value: unknown) => void): NodeJS.Timeout => setTimeout(resolve, 20));
 
-		expect(opened.length).toBe(afterCancel);
+		expect(opened).toHaveLength(afterCancel);
 		expect(opened[opened.length - 1]).toBeLessThan(tree.collections().length);
 	});
 
@@ -368,6 +592,18 @@ describe('createExpansionController', () => {
 		const nodeA = entry(tree, ['a']) as HTMLElement;
 		expect(isOpen(nodeA)).toBe(false);
 		expect(directChildren(nodeA)).toHaveLength(1); // built once, kept in the DOM
+	});
+
+	it('has nothing to do on a document whose root is a primitive', async () => {
+		const tree = renderJson(42, 5);
+		const expansion = createExpansionController(tree);
+
+		await expansion.expandAll();
+		expansion.collapseAll();
+
+		expect(tree.root).toBeNull();
+		expect(expansion.running).toBe(false);
+		expect(tree.collections()).toHaveLength(0);
 	});
 
 	it('restarting expandAll retires the previous run instead of running both', async () => {

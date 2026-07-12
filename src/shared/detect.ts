@@ -64,10 +64,7 @@ export function inspectPotentialJsonDocument(doc: Document = document): Potentia
 }
 
 /** Second stage: measure the payload against the limit, then parse it. */
-export function parseDetectedJson(
-	candidate: PotentialJsonDocument,
-	maxBytes: number = DEFAULT_MAX_BYTES
-): Detected | null {
+export function parseDetectedJson(candidate: PotentialJsonDocument, maxBytes: number = DEFAULT_MAX_BYTES): Detected | null {
 	const raw: string = candidate.rawText;
 	const rawByteLength: number = new TextEncoder().encode(raw).byteLength;
 	if (rawByteLength > maxBytes) {

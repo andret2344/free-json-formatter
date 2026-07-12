@@ -6,20 +6,38 @@
 	--fjf-bg: #ffffff;
 	--fjf-fg: #1f2328;
 	--fjf-muted: #8b949e;
+	/* The gutter sits a shade off the page, so the click target reads as a column even before the rule. */
+	--fjf-gutter-bg: #fafbfc;
 	--fjf-line-hover: #f2f4f7;
 	--fjf-toolbar-bg: #f6f8fa;
 	--fjf-border: #d0d7de;
+	/* Indent guides: quieter than a border, they run down every nesting level at once. */
+	--fjf-guide: #e7eaee;
 	--fjf-key: #0550ae;
 	--fjf-string: #0a7d33;
 	--fjf-number: #953800;
 	--fjf-boolean: #8250df;
 	--fjf-null: #6e7781;
-	--fjf-punct: #57606a;
+	--fjf-punctuation: #57606a;
 	--fjf-link: #0969da;
 	--fjf-hl-bg: #fff3b0;
 	--fjf-hl-cur-bg: #ffca28;
 	--fjf-btn-bg: #ffffff;
 	--fjf-btn-active: #dbeafe;
+}
+
+/* Declare the scheme the viewer is actually painted in, so the browser's own chrome inside the page - form
+   controls, the scrollbars of the tree, the caret in the search box - matches the theme instead of staying
+   light on a dark tree. Note this does NOT opt the page out of Chrome's force-dark flag
+   (chrome://flags/#enable-force-dark): that pass ignores color-scheme entirely and inverts every light
+   colour it finds. Nothing on the page can prevent it - what saves the viewer there is that force-dark
+   leaves dark colours untouched, so the dark theme comes through exactly as designed. */
+:root[data-fjf-theme="auto"] {
+	color-scheme: light dark;
+}
+
+:root[data-fjf-theme="light"] {
+	color-scheme: only light;
 }
 
 /* Auto: follow the OS when no explicit theme is chosen. */
@@ -28,15 +46,17 @@
 		--fjf-bg: #0d1117;
 		--fjf-fg: #e6edf3;
 		--fjf-muted: #7d8590;
+		--fjf-gutter-bg: #11171f;
 		--fjf-line-hover: #161b22;
 		--fjf-toolbar-bg: #161b22;
 		--fjf-border: #30363d;
+		--fjf-guide: #23282f;
 		--fjf-key: #79c0ff;
 		--fjf-string: #7ee787;
 		--fjf-number: #ffa657;
 		--fjf-boolean: #d2a8ff;
 		--fjf-null: #8b949e;
-		--fjf-punct: #8b949e;
+		--fjf-punctuation: #8b949e;
 		--fjf-link: #58a6ff;
 		--fjf-hl-bg: #57500a;
 		--fjf-hl-cur-bg: #9e8400;
@@ -46,18 +66,21 @@
 }
 
 :root[data-fjf-theme="dark"] {
+	color-scheme: only dark;
 	--fjf-bg: #0d1117;
 	--fjf-fg: #e6edf3;
 	--fjf-muted: #7d8590;
+	--fjf-gutter-bg: #11171f;
 	--fjf-line-hover: #161b22;
 	--fjf-toolbar-bg: #161b22;
 	--fjf-border: #30363d;
+	--fjf-guide: #23282f;
 	--fjf-key: #79c0ff;
 	--fjf-string: #7ee787;
 	--fjf-number: #ffa657;
 	--fjf-boolean: #d2a8ff;
 	--fjf-null: #8b949e;
-	--fjf-punct: #8b949e;
+	--fjf-punctuation: #8b949e;
 	--fjf-link: #58a6ff;
 	--fjf-hl-bg: #57500a;
 	--fjf-hl-cur-bg: #9e8400;
@@ -262,6 +285,14 @@ html.fjf-active body {
 	white-space: nowrap;
 }
 
+/* Nesting level of the entry, set per node at render time (see formatter.ts) and inherited by both of its
+   lines - the gutter number has to undo the indent to land in a straight column, which takes the depth.
+   Declared here so the property exists in the stylesheet: the inline value an entry carries always wins,
+   and the root's 0 is what the tree would fall back to anyway. */
+.fjf-entry {
+	--fjf-depth: 0;
+}
+
 /* With nowrap the text overflows to the right, but a block box still stops at the viewport edge - so
    line hover and its background would end there too, leaving the scrolled-right part of a line dead.
    Sizing the root entry to max-content makes every line box run to the right edge of the widest line
@@ -285,16 +316,38 @@ html.fjf-active body {
 }
 
 .fjf-children {
+	position: relative;
 	padding-left: calc(var(--fjf-tab, 2) * 1ch);
-	border-left: 1px solid transparent;
 }
 
-.fjf-children:hover {
-	border-left-color: var(--fjf-border);
+/* Indent guide: one vertical line per nesting level, darkened for the level under the pointer so it stands
+   out from the ones around it. It is an absolutely positioned pseudo rather than a border because the rows
+   below reach all the way to the left edge of the tree (see .fjf-line) and their background would paint
+   straight over a border on this box. Positioned, it sits above them. */
+.fjf-children::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: 1px;
+	background: var(--fjf-guide);
+	z-index: 1;
+	pointer-events: none;
 }
 
+.fjf-children:hover::before {
+	background: var(--fjf-border);
+}
+
+/* A line spans the full width of the tree, from the left edge to the end of the longest line - the nesting
+   indent is its own padding, not its parent's. Indenting the box instead (which is what the children box
+   used to do) left a dead strip between the line number and the start of the text: it belonged to no line,
+   so it took neither the hover tint nor the target highlight, and the row looked cut in half. */
 .fjf-line {
 	display: block;
+	margin-left: calc(-1 * var(--fjf-depth, 0) * var(--fjf-tab, 2) * 1ch);
+	padding-left: calc(var(--fjf-depth, 0) * var(--fjf-tab, 2) * 1ch);
 	border-radius: 3px;
 	cursor: default;
 }
@@ -319,14 +372,23 @@ html.fjf-active body {
 	margin-right: calc(var(--fjf-depth, 0) * var(--fjf-tab, 2) * 1ch);
 	padding-left: 16px; /* the tree's left inset, carried by the gutter so its background covers it */
 	padding-right: 1ch;
-	background: var(--fjf-bg); /* opaque: the text scrolls underneath the numbers, not through them */
+	/* Opaque, and a shade off the page: the text scrolls underneath the numbers, not through them, and the
+	   tint marks out the column the click lands in. */
+	background: var(--fjf-gutter-bg);
+	/* The column's edge. It belongs to the number, not to a separate element, so every line draws its own
+	   1px and they stack into one continuous rule - and it is also the visible boundary of the click target:
+	   left of this line the click writes #L<n>, right of it the row toggles. */
+	border-right: 1px solid var(--fjf-border);
 	text-align: right;
 	/* Muted through the colour, never through opacity - that would fade the background with it and let
 	   the scrolled text show straight through the gutter. */
 	color: var(--fjf-muted);
 	font-variant-numeric: tabular-nums;
 	user-select: none;
-	pointer-events: none;
+	/* The number is clickable (it writes #L<n> into the URL - see content.ts). A click on a pseudo targets
+	   the element it belongs to, so the line receives it and the handler tells the two apart by geometry;
+	   the pseudo stays out of the selection, so copying the tree still never picks a number up. */
+	cursor: pointer;
 }
 
 /* Only a collection's header line does something when clicked, but every line highlights on hover -
@@ -343,6 +405,16 @@ html.fjf-active body {
    hovered row shows a hole where the gutter is. */
 .fjf-line:hover::before {
 	background: var(--fjf-line-hover);
+	/* Clicking the number writes #L<n> into the URL (see content.ts). The pseudo takes no pointer events,
+	   so the colour change is the only affordance it can offer - and the cursor stays the row's. */
+	color: var(--fjf-link);
+}
+
+/* The line a #L<n> link points at. Distinct from the hover tint, which is transient and can sit on
+   another row at the same time. */
+.fjf-line.fjf-line-target,
+.fjf-line.fjf-line-target::before {
+	background: var(--fjf-btn-active);
 }
 
 /* The expand control is a real <button> (keyboard + screen reader), styled back down to a bare glyph. */
@@ -371,12 +443,70 @@ button.fjf-toggle:focus-visible {
 	visibility: hidden;
 }
 
+/* Per-line actions (copy path, copy value). Hidden by visibility, not display: the controls keep their
+   boxes, so the line's width - and the tree's max-content width with it - does not jump when the pointer
+   enters a row. */
+.fjf-line-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.5em;
+	height: 1.2em;
+	margin-left: 0.4ch;
+	padding: 0;
+	border: 0;
+	background: none;
+	font: inherit;
+	line-height: inherit;
+	color: var(--fjf-muted);
+	visibility: hidden;
+	user-select: none;
+	cursor: pointer;
+}
+
+.fjf-line-action > svg {
+	width: 1em;
+	height: 1em;
+}
+
+.fjf-line:hover > .fjf-line-action,
+.fjf-line-action:focus-visible {
+	visibility: visible;
+}
+
+.fjf-line-action:hover {
+	color: var(--fjf-link);
+}
+
+.fjf-line-action:focus-visible {
+	outline: 2px solid var(--fjf-link);
+	outline-offset: 1px;
+	border-radius: 3px;
+}
+
+/* Copy feedback. The icon is an SVG child, so the result cannot be a swapped glyph (that would delete it):
+   the icon steps aside for a moment and a mark takes its place. */
+.fjf-line-action.fjf-copy-ok > svg,
+.fjf-line-action.fjf-copy-fail > svg {
+	display: none;
+}
+
+.fjf-line-action.fjf-copy-ok::after {
+	content: "✓";
+	color: var(--fjf-string);
+}
+
+.fjf-line-action.fjf-copy-fail::after {
+	content: "✕";
+	color: var(--fjf-number);
+}
+
 .fjf-key {
 	color: var(--fjf-key);
 }
 
 .fjf-colon {
-	color: var(--fjf-punct);
+	color: var(--fjf-punctuation);
 }
 
 .fjf-string {
@@ -398,8 +528,8 @@ button.fjf-toggle:focus-visible {
 	font-style: italic;
 }
 
-.fjf-punct {
-	color: var(--fjf-punct);
+.fjf-punctuation {
+	color: var(--fjf-punctuation);
 }
 
 .fjf-link {
@@ -419,10 +549,10 @@ button.fjf-toggle:focus-visible {
 	display: none;
 }
 
-/* Open: hide the inline preview, the inline closing bracket (the .fjf-punct right after
+/* Open: hide the inline preview, the inline closing bracket (the .fjf-punctuation right after
    the preview), and the inline comma. The .fjf-close line renders the real closer. */
 .fjf-entry.fjf-open > .fjf-line > .fjf-preview,
-.fjf-entry.fjf-open > .fjf-line > .fjf-preview + .fjf-punct,
+.fjf-entry.fjf-open > .fjf-line > .fjf-preview + .fjf-punctuation,
 .fjf-entry.fjf-open > .fjf-line > .fjf-inline-comma {
 	display: none;
 }

@@ -42,10 +42,7 @@ const STATIC_FILES = [
 ];
 
 async function copyStatic(target, outdir, baseManifest) {
-	await writeFile(
-		resolve(outdir, 'manifest.json'),
-		`${JSON.stringify(manifestFor(target, baseManifest), null, 2)}\n`
-	);
+	await writeFile(resolve(outdir, 'manifest.json'), `${JSON.stringify(manifestFor(target, baseManifest), null, 2)}\n`);
 	for (const [source, name] of STATIC_FILES) {
 		await cp(resolve(root, 'src', source), resolve(outdir, name));
 	}
@@ -57,11 +54,7 @@ async function copyStatic(target, outdir, baseManifest) {
 
 function esbuildOptions(outdir) {
 	return {
-		entryPoints: [
-			resolve(root, 'src/content/content.ts'),
-			resolve(root, 'src/content/console-handle.ts'),
-			resolve(root, 'src/popup/popup.ts')
-		],
+		entryPoints: [resolve(root, 'src/content/content.ts'), resolve(root, 'src/content/console-handle.ts'), resolve(root, 'src/popup/popup.ts')],
 		bundle: true,
 		format: 'iife',
 		target: 'es2020',

@@ -7,6 +7,21 @@ export interface StorageStub {
 	failWrites: boolean;
 }
 
+/** `chrome.tabs.reload` is not readonly: the popup tests swap it for a spy to prove the popup never calls it. */
+export interface ChromeTabsStub {
+	reload: unknown;
+}
+
+export interface ChromeStub {
+	readonly storage: unknown;
+	readonly tabs: ChromeTabsStub;
+}
+
+/** The shape the tests pretend `globalThis` has, so the cast that installs the stub needs no inline type. */
+export interface ChromeGlobal {
+	chrome: ChromeStub;
+}
+
 export function installStorageStub(): StorageStub {
 	const stub: StorageStub = {data: {}, failReads: false, failWrites: false};
 
@@ -24,11 +39,10 @@ export function installStorageStub(): StorageStub {
 		Object.assign(stub.data, values);
 	}
 
-	const chromeStub = {
+	(globalThis as unknown as ChromeGlobal).chrome = {
 		storage: {local: {get, set}},
 		tabs: {reload: (): Promise<void> => Promise.resolve()}
 	};
-	(globalThis as unknown as {chrome: unknown}).chrome = chromeStub;
 
 	return stub;
 }

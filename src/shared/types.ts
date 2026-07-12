@@ -1,5 +1,14 @@
 export type JsonPrimitive = null | boolean | number | string;
-export type JsonObject = {[key: string]: JsonValue};
+
+/**
+ * An interface, not a `type` alias: `Record<string, JsonValue>` is a mapped type and resolves eagerly, so
+ * `JsonValue` would circularly reference itself (TS2456), while an interface's members resolve lazily.
+ * It also keeps the braces on their own lines, which is the one shape IJ and Biome format identically.
+ */
+export interface JsonObject {
+	readonly [key: string]: JsonValue;
+}
+
 export type JsonValue = JsonPrimitive | JsonValue[] | JsonObject;
 
 export type JsonKind = 'null' | 'boolean' | 'number' | 'string' | 'array' | 'object';
@@ -9,6 +18,9 @@ export type JsonCollection = JsonValue[] | JsonObject;
 
 /** Location of a value inside the parsed document: object keys and array indices, root first. */
 export type JsonPath = readonly (string | number)[];
+
+/** What the viewer turns into a clickable link: an absolute http(s) URL, or a protocol-relative one. */
+const URL_RE: RegExp = /^(https?:\/\/|\/\/)[^\s]+$/i;
 
 export function typeOf(value: JsonValue): JsonKind {
 	if (value === null) {
@@ -55,19 +67,6 @@ export function entriesOf(value: JsonCollection): JsonEntry[] {
 export function childCount(value: JsonCollection): number {
 	return Array.isArray(value) ? value.length : Object.keys(value).length;
 }
-
-/**
- * Ordinal position of a child inside its collection, matching the order `entriesOf` renders in.
- * Returns -1 when the key is not present.
- */
-export function childIndexOf(value: JsonCollection, key: string | number): number {
-	if (Array.isArray(value)) {
-		return typeof key === 'number' && key >= 0 && key < value.length ? key : -1;
-	}
-	return Object.keys(value).indexOf(String(key));
-}
-
-const URL_RE: RegExp = /^(https?:\/\/|\/\/)[^\s]+$/i;
 
 export function looksLikeUrl(text: string): boolean {
 	return URL_RE.test(text.trim());

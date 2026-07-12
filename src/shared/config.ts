@@ -1,11 +1,54 @@
-/** Shared configuration: the maximum payload size the extension will format. */
+/** Shared configuration: everything the extension persists, and the values that bound it. */
+
+export type IndentId = '2s' | '4s' | '6s' | '8s' | '1t' | '2t';
+
+export interface IndentOption {
+	/** Stable id persisted in storage. */
+	readonly id: IndentId;
+	/** Human label shown in the picker. */
+	readonly label: string;
+	/** Indent string passed to JSON.stringify (spaces or tab characters). */
+	readonly indent: string;
+	/** Visual width in `ch` for the rendered tree gutters. */
+	readonly ch: number;
+}
+
+/**
+ * How many levels of the tree are expanded when a JSON page opens.
+ * The tree is always rendered lazily; this only controls the initial depth.
+ */
+export type InitialExpansionDepth = 'auto' | 1 | 2 | 3 | 4 | 5 | 'all';
+
+/** Depth resolved to something the renderer can act on: a level count, or "expand everything". */
+export type ResolvedExpansionDepth = Exclude<InitialExpansionDepth, 'auto'>;
 
 export const DEFAULT_MAX_MB = 40;
 export const MIN_MAX_MB = 1;
 /** Ceiling for the size limit: the viewer does a full JSON.parse(), so anything past this is not realistic. */
 export const MAX_MAX_MB = 200;
 
+/** Deepest level a user can pick by hand; full expansion is the separate `all` value. */
+export const MAX_MANUAL_DEPTH = 5;
+
+export const INDENT_OPTIONS: readonly IndentOption[] = [
+	{id: '2s', label: '2 spaces', indent: '  ', ch: 2},
+	{id: '4s', label: '4 spaces', indent: '    ', ch: 4},
+	{id: '6s', label: '6 spaces', indent: '      ', ch: 6},
+	{id: '8s', label: '8 spaces', indent: '        ', ch: 8},
+	{id: '1t', label: '1 tab', indent: '\t', ch: 4},
+	{id: '2t', label: '2 tabs', indent: '\t\t', ch: 8}
+];
+
+export const DEFAULT_INDENT: IndentOption = INDENT_OPTIONS[0];
+export const DEFAULT_INITIAL_EXPANSION_DEPTH: InitialExpansionDepth = 'auto';
+
+/** Storage keys. Every one of them is listed in PRIVACY.md - keep the two in step. */
 const MAX_MB_KEY = 'fjf-max-mb';
+const WRAP_KEY = 'fjf-wrap';
+const CASE_KEY = 'fjf-case';
+const INDENT_KEY = 'fjf-indent';
+const DEPTH_KEY = 'fjf-depth';
+
 const BYTES_PER_MB = 1024 * 1024;
 
 export function clampMaxMb(mb: number): number {
@@ -36,35 +79,6 @@ export async function setMaxMb(mb: number): Promise<void> {
 	await chrome.storage.local.set({[MAX_MB_KEY]: clampMaxMb(mb)});
 }
 
-/** View preferences, persisted so they survive across pages and sessions. */
-const WRAP_KEY = 'fjf-wrap';
-const CASE_KEY = 'fjf-case';
-const INDENT_KEY = 'fjf-indent';
-
-export type IndentId = '2s' | '4s' | '6s' | '8s' | '1t' | '2t';
-
-export interface IndentOption {
-	/** Stable id persisted in storage. */
-	readonly id: IndentId;
-	/** Human label shown in the picker. */
-	readonly label: string;
-	/** Indent string passed to JSON.stringify (spaces or tab characters). */
-	readonly indent: string;
-	/** Visual width in `ch` for the rendered tree gutters. */
-	readonly ch: number;
-}
-
-export const INDENT_OPTIONS: readonly IndentOption[] = [
-	{id: '2s', label: '2 spaces', indent: '  ', ch: 2},
-	{id: '4s', label: '4 spaces', indent: '    ', ch: 4},
-	{id: '6s', label: '6 spaces', indent: '      ', ch: 6},
-	{id: '8s', label: '8 spaces', indent: '        ', ch: 8},
-	{id: '1t', label: '1 tab', indent: '\t', ch: 4},
-	{id: '2t', label: '2 tabs', indent: '\t\t', ch: 8}
-];
-
-export const DEFAULT_INDENT: IndentOption = INDENT_OPTIONS[0];
-
 export function indentById(id: string): IndentOption {
 	function hasId(option: IndentOption): boolean {
 		return option.id === id;
@@ -74,7 +88,7 @@ export function indentById(id: string): IndentOption {
 }
 
 function storeValue(key: string, value: unknown): void {
-	void chrome.storage.local.set({[key]: value}).catch((): void => undefined);
+	chrome.storage.local.set({[key]: value}).catch((): void => undefined);
 }
 
 async function getBool(key: string): Promise<boolean> {
@@ -115,22 +129,6 @@ export async function getIndent(): Promise<IndentOption> {
 export function setIndent(id: IndentId): void {
 	storeValue(INDENT_KEY, id);
 }
-
-/**
- * How many levels of the tree are expanded when a JSON page opens.
- * The tree is always rendered lazily; this only controls the initial depth.
- */
-export type InitialExpansionDepth = 'auto' | 1 | 2 | 3 | 4 | 5 | 'all';
-
-/** Depth resolved to something the renderer can act on: a level count, or "expand everything". */
-export type ResolvedExpansionDepth = Exclude<InitialExpansionDepth, 'auto'>;
-
-/** Deepest level a user can pick by hand; full expansion is the separate `all` value. */
-export const MAX_MANUAL_DEPTH = 5;
-
-export const DEFAULT_INITIAL_EXPANSION_DEPTH: InitialExpansionDepth = 'auto';
-
-const DEPTH_KEY = 'fjf-depth';
 
 /** Parse a stored/selected value; anything unrecognized falls back to the default. */
 export function depthFromValue(value: unknown): InitialExpansionDepth {
