@@ -1,6 +1,6 @@
 {
 	"name": "free-json-formatter",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "Fast, private JSON viewer for the browser. No telemetry, no external requests, minimal permissions.",
 	"license": "MIT",
 	"author": "andret2344",

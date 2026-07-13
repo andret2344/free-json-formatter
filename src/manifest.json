@@ -1,7 +1,7 @@
 {
 	"manifest_version": 3,
 	"name": "Free JSON Formatter",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "Fast, private JSON viewer. Collapsible tree, search, themes. No ads, no tracking, no network requests. Open source.",
 	"homepage_url": "https://github.com/andret2344/free-json-formatter",
 	"permissions": [

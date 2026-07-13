@@ -4,7 +4,17 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - latest
+## [0.2.1] - latest
+
+### Changed
+
+- Privacy wording in `README.md`, `SECURITY.md`, and `PRIVACY.md` now describes both parts of the
+  extension's access: the `storage` API permission and the content-script site access that lets it
+  detect a JSON document served from any URL. Nothing about what the extension stores, reads, or
+  sends changed.
+- The settings popup states that JSON is processed locally in the tab and nothing is uploaded.
+
+## [0.2.0] - 2026-07-12
 
 ### Added
 
@@ -50,6 +60,8 @@ Initial release.
 - Themes (Auto / Light / Dark), configurable indentation, and a line-wrap toggle - all remembered.
 - Settings popup for the maximum payload size and the initial tree depth.
 - Clickable URL string values.
+
+[0.2.1]: https://github.com/andret2344/free-json-formatter/releases/tag/v0.2.1
 
 [0.2.0]: https://github.com/andret2344/free-json-formatter/releases/tag/v0.2.0
 

@@ -2,7 +2,7 @@
 
 **Free JSON Formatter** (the "extension") does not collect, transmit, sell, or share any user data.
 
-Last updated: 2026-07-12.
+Last updated: 2026-07-13.
 
 ## What the extension does with your data
 
@@ -10,17 +10,27 @@ The extension reads the JSON document already open in your browser tab and repla
 formatted, collapsible view of the same document. That processing happens entirely on your machine,
 inside the tab. The document is never uploaded, copied to a server, or sent anywhere.
 
-## Data collected
+## Website content processed locally
 
-**None.** Specifically, the extension does not collect or transmit:
+The extension reads the JSON document currently open in your browser tab solely to determine whether
+it contains JSON and to render the formatted view. This processing happens entirely on your device.
 
-- the content of the pages you visit, or of the JSON documents it formats
-- your browsing history, URLs, or search queries
-- personally identifiable information, authentication information, or location
-- usage analytics, crash reports, or any other telemetry
+The extension may inspect the current page's content type, URL path, and visible document text to
+determine whether the page contains raw JSON. This information is not retained or transmitted.
 
-There is no analytics SDK, no tracking pixel, no advertising, no affiliate code, and no remote
-configuration. The extension makes **no network requests of any kind** - it has no server to talk to.
+## Data collected or transmitted by the developer
+
+**None.** The extension does not transmit, retain, sell, or share:
+
+- the contents of JSON documents or other pages
+- URLs or browsing activity
+- personally identifiable information
+- authentication information
+- location information
+- usage analytics, diagnostics, or telemetry
+
+There is no analytics SDK, tracking pixel, advertising, affiliate code, remote configuration, or
+developer-operated server. The extension makes no external network requests.
 
 ## Data stored on your device
 
@@ -45,10 +55,10 @@ only when you click them. The extension never reads your clipboard.
 
 ## Permissions
 
-`storage` is the only permission requested. The content script runs on all URLs because a JSON
-document can be served from any address; on a page that is not JSON it does nothing beyond a cheap
-check and exits. Broad host access is what makes the check possible - it is not used to read, store,
-or transmit the pages you visit.
+`storage` is the only API permission requested. The extension also uses content-script site access
+because JSON documents may be served from any URL. On a page that is not JSON, it performs a
+lightweight check and exits. This access is not used to retain or transmit page content, URLs, or
+browsing activity.
 
 ## Source code
 

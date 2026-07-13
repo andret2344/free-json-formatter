@@ -34,8 +34,9 @@ data to send, which is also why it is quick.
   branches that are still collapsed and opens exactly the one you asked for. Line numbers stay
   stable when you fold, the way code folding works. Any line's path is one click from your
   clipboard, ready to paste into devtools.
-- **It is transparent by construction.** One permission (`storage`, for your own settings), no
-  network requests, no telemetry, no remote code, MIT-licensed source you can read in an afternoon.
+- **It is transparent by construction.** One API permission (`storage`, used only for your
+  settings), plus site access required to detect JSON documents opened on any URL. No network
+  requests, no telemetry, no remote code, and MIT-licensed source you can read in an afternoon.
   You do not have to take that on faith - the [Privacy Policy](PRIVACY.md) lists every key it
   writes, the end-to-end suite asserts that formatting a document makes no request at all, and the
   packed extension is under 30 kB.
@@ -69,8 +70,9 @@ The lesson was not "read the reviews more carefully". It was that a viewer for a
 business being *able* to do any of that, and that the only privacy claim worth anything is one you
 can check yourself. So this extension is built to be checkable:
 
-- **One permission** - `storage`, for your own settings. Nothing else is requested, so nothing else
-  is possible.
+- **Minimal access** - one API permission (`storage`) to remember your settings, plus site access
+  required to detect JSON documents wherever they are opened. On non-JSON pages, the extension
+  performs a lightweight check and exits.
 - **No network code at all**, and an end-to-end test that fails if a request is ever made.
 - **Nothing is injected** into any page that is not a JSON document - no ads, no affiliate code, no
   donation prompts, no remote script.
@@ -118,12 +120,13 @@ A feature-by-feature comparison with the other viewers is in [`docs/COMPARISON.m
 Your JSON is yours. The extension reads the document that is already in your tab, formats it there,
 and that is the end of the story:
 
-| Guarantee             | Status                                            |
-|-----------------------|---------------------------------------------------|
-| External requests     | **None** - the content script contacts no server. |
-| Telemetry / analytics | **None.**                                         |
-| Remote code           | **None** - everything ships in the bundle.        |
-| Permissions           | **`storage` only** (to remember your preferences).|
+| Guarantee             | Status                                                       |
+|-----------------------|--------------------------------------------------------------|
+| External requests     | **None** - the content script contacts no server.            |
+| Telemetry / analytics | **None.**                                                    |
+| Remote code           | **None** - everything ships in the bundle.                   |
+| API permission        | **`storage`**, used only to remember preferences.            |
+| Site access           | Used to detect and format JSON documents opened by the user. |
 
 These are checkable claims, not promises: the [Privacy Policy](PRIVACY.md) names every setting the
 extension stores on your device, [SECURITY.md](SECURITY.md) covers the security policy and how to

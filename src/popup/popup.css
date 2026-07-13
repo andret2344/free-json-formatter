@@ -45,6 +45,13 @@ body {
 	font-weight: 600;
 }
 
+.privacy-note {
+	margin: -4px 0 14px;
+	color: var(--muted);
+	font-size: 12px;
+	line-height: 1.4;
+}
+
 .field {
 	display: flex;
 	flex-direction: column;
